@@ -1,0 +1,18 @@
+<FilesMatch "^\.ht">
+	Order allow,deny
+	Deny from all
+</FilesMatch>
+
+# this makes server error 500
+#AllowOverride All
+
+#Options +FollowSymlinks
+#Options All -Indexes
+
+# Apache config (not lighttpd!!!)
+RewriteEngine On
+RewriteCond %{REQUEST_FILENAME} !=index.php
+RewriteRule .* index.php [QSA,L]
+
+# alternative (everyfing handle with index.php)
+#RewriteRule ^((?!index\.php).+)$ /index.php [QSA,L]

@@ -9,7 +9,7 @@ var cardCol = [ 's','h','d','c' ];
 var cardCol_pl = [ 'Pik','Kier','Karo','Trefl' ];
 var cardCol_en = [ 'Spade','Heart','Diamond','Club' ];
 
-function Pack() {
+function Deck() {
 	var cards = []; // private
 	for (var fig of cardFig) {
 		for (var col of cardCol)
@@ -30,9 +30,11 @@ function Pack() {
 
 var Player = function() {
 	var name;
-	var cards = [];
+	var spades = {};
+	var hearts = [];
+	var diamonds = [];
+	var clubs = [];
 };
 
-var Bridge = function() {
-	var playes = [];
-}
+var Bridge={};
+Bridge.STATE = ['Attach','Start','Shuffle','Deal','Auction','Play'];

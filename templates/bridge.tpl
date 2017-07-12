@@ -9,41 +9,44 @@
   <title>Brydż</title>
 </head>
 <body>
+<div id="cards"></div>
 <div>
-	<span>Current phase:</span><span id="phase"></span>
-	<input type="button" value="next" onclick="next()">
-</div>
-<div class="cards">
-<%for($i=0; $i<52; ++$i){%>
-	<span class="card"></span>
-<%}%>
+	<span id="phase"></span>
+	<input id="action" type="button" value="go" onclick="next()" style="visibility:hidden">
 </div>
 <div id="table"></div>
 
 <script>
 window.addEventListener("load", loadPhase);
-var pack = new Pack();
-showpack();
+var deck = new Deck();
+var state=0;
+showdeck();
 function loadPhase() {
 	var p = readLocal('brg-phase');
-	if (isEmpty(p)) p='Rozdanie';
+	if (isEmpty(p)) p=0;
 	setPhase(p);
 }
 function setPhase(p) {
-	log('setPahse '+p);
-	$('phase').innerHTML=p;
+	state=p;
+	var s=Bridge.STATE[p];
+	log('setPahse '+state);
+	//$('phase').innerHTML=s;
+	$('action').value=s;
+	$('action').style.visibility='visible';
 }
 function next() {
 	log('next ');
-	pack.shuffle();
-	showpack();
+	setPhase(state+1);
 }
-function showpack() {
-	var cui = $('.card');
-	var c = pack.getCards();
+function showdeck() {
+	var c = deck.getCards();
+	var s='';
 	for (var i=0; i < c.length; ++i) {
-		cui[i].innerHTML=c[i].fig+'<img src="res/'+c[i].col+'.gif>';
+		s+='<span>';
+		s+=c[i].fig+'<img src="res/'+c[i].col+'.gif">';
+		s+='</span> ';
 	}
+	$('cards').innerHTML=s;
 }
 </script>
 </body></html>

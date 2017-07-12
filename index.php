@@ -23,6 +23,7 @@ $r->addRoute("GET","/.*(css|js|html)",function() {
 
 $r->addRoute("GET","(/res/.*)",function() {
 	$args = func_get_args();
+	$req=Request::getInstance();
 	$f=".".$req->getval("uri");
 	if (file_exists($f)) {
 		header("Content-Type: ".make_content_type($f));
