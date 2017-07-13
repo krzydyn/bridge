@@ -23,6 +23,6 @@ $config["cachedir"]="cache/"; //relative to rootdir
 $config["templatedir"]=array($config["rootdir"]."templates/");
 $config["templateexpired"]="force"; //modtime
 
-$config["sitetitle"]="Brydź";
+$config["sitetitle"]="Brydż";
 $config["lang"]="pl";
 ?>

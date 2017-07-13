@@ -35,7 +35,7 @@ function loge(str) {
 function logw(str) {
 	console.log("%c%s %s","color:blue;",formatTime(Date.now()), str);
 }
-function loga(str) {
+function uilog(str) {
 	var l = $('logarea');
 	if (l) {
 		l.innerHTML += str+'\n';

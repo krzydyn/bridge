@@ -1,42 +1,46 @@
 <!DOCTYPE html>
 <html xmlns="http://www.w3.org/1999/xhtml" xml:lang="pl" lang="pl">
 <head>
+  <title><%val("cfg.sitetitle")%></title>
   <meta http-equiv="Content-type" content="text/html;charset=utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <script src="<%val("cfg.rooturl")%>ajax.js"></script>
   <script src="<%val("cfg.rooturl")%>js/misc.js"></script>
   <script src="<%val("cfg.rooturl")%>js/storage.js"></script>
   <script src="<%val("cfg.rooturl")%>js/bridge.js"></script>
-  <title>Brydż</title>
+  <link rel="stylesheet" href="<%val("cfg.rooturl")%>css/style.css" type="text/css"/>
 </head>
 <body>
-<div id="cards"></div>
-<div>
-	<span id="phase"></span>
-	<input id="action" type="button" value="go" onclick="next()" style="visibility:hidden">
-</div>
-<div id="table"></div>
+<div id="actions"> </div>
+<div class="pack left" id="content"></div>
 
 <script>
-window.addEventListener("load", loadPhase);
+window.addEventListener("load", attachTable);
+var ajax = new Ajax();
 var deck = new Deck();
 var state=0;
-showdeck();
-function loadPhase() {
-	var p = readLocal('brg-phase');
-	if (isEmpty(p)) p=0;
-	setPhase(p);
+function attachTable() {
+	var state = readLocal('bridge.state');
+	if (!state && $('user') && !isEmpty($('user').value)) {
+		state = {};
+		state.user = $('user').value;
+		state.table = $('table').value;
+		saveLocal('bridge.state',state);
+	}
+	if (!state) buildAttach();
+	else {
+		var u='t='+state.table+'&u='+state.user;
+		ajax.async('get','<%val("cfg.rooturl")%>api/attach?'+u);
+	}
 }
-function setPhase(p) {
-	state=p;
-	var s=Bridge.STATE[p];
-	log('setPahse '+state);
-	//$('phase').innerHTML=s;
-	$('action').value=s;
-	$('action').style.visibility='visible';
-}
-function next() {
-	log('next ');
-	setPhase(state+1);
+
+function buildAttach() {
+	log('buildAttach');
+	var s='Joint to table play<br>';
+	s += '<input id="user" type="text" value="" size="10" placeholder="your name"><br>';
+	s += '<input id="table" type="text" value="" size="10" placeholder="table name"> ';
+	s += '<input type="button" value="join" onclick="attachTable()"><br>';
+	$('content').innerHTML=s;
 }
 function showdeck() {
 	var c = deck.getCards();
