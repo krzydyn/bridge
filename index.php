@@ -70,9 +70,9 @@ $r->addRoute("","/api/(\\w+).*",function() {
 });
 
 $r->addRoute("GET","/.*",function() {
-global $config;
-$t = new TemplateEngine();
-$t->load("bridge.tpl");
+	global $config;
+	$t = new TemplateEngine();
+	$t->load("bridge.tpl");
 });
 
 $r->addRoute("","",function() {
