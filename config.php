@@ -25,4 +25,9 @@ $config["templateexpired"]="force"; //modtime
 
 $config["sitetitle"]="Brydż";
 $config["lang"]="pl";
+
+// db setup
+$config["debug"]["query"]="y";
+$config["dbtype"]="pdo";
+$config["dbname"]="sqlite:db/bridge.db";
 ?>

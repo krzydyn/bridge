@@ -1,0 +1,12 @@
+table.brt td {
+	text-align:center;
+	vertical-align:middle;
+	padding: 5px;
+}
+td.brt {
+	border:1px solid black;
+	border-radius:5px;
+	background-color:rgba(150,150,150,0.9);
+	width:200px;
+	height:200px;
+}

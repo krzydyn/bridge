@@ -37,4 +37,4 @@ var Player = function() {
 };
 
 var Bridge={};
-Bridge.STATE = ['Attach','Start','Shuffle','Deal','Auction','Play'];
+Bridge.STATE = ['Join','Start','Deal','Auction','Play'];
