@@ -81,8 +81,7 @@ function initdb() {
 	$db = DB::connectDefault();
 
 	$reqtabs=array(
-		"tables"=>"name varchar(255),expireOn date".
-					",west varchar(255),north varchar(255),east varchar(255),south varchar(255)",
+		"tables"=>"name varchar(255),expireOn date,state text",
 	);
 	$tabs=$db->tables();
 	if ($tabs===false) {

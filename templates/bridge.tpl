@@ -19,17 +19,47 @@
 <script>
 window.addEventListener("load", showState);
 var ajax = new Ajax();
-var deck = new Deck();
-
-function saveState(st) {
+window.rooturl='<%val("cfg.rooturl")%>';
+/*
+var lists=$('.ddlist');
+lists.addEventListener("focusout",()=>setTimeout(function() {
+    $('.')[0].style.display='none';
+},500));
+*/
+function calcState(st) {
 	if (st.info) {
 		var n=0;
-		if (st.info.west) ++n;
-		if (st.info.north) ++n;
-		if (st.info.east) ++n;
-		if (st.info.south) ++n;
-		st.info.players=n;
+		if (!isEmpty(st.info.west.name)) ++n;
+		if (!isEmpty(st.info.north.name)) ++n;
+		if (!isEmpty(st.info.east.name)) ++n;
+		if (!isEmpty(st.info.south.name)) ++n;
+		st.players=n;
+		n=0;
+		if (st.info.west.hand) n+=st.info.west.hand.length;
+		if (st.info.north.hand) n+=st.info.north.hand.length;
+		if (st.info.east.hand) n+=st.info.east.hand.length;
+		if (st.info.south.hand) n+=st.info.south.hand.length;
+		st.cards=n;
 	}
+}
+function transState(st) {
+	if (st.phase == 'wait') {
+		if (st.players==4) st.phase='deal';
+	}
+	if (st.phase == 'deal') {
+		if (st.cards > 0) st.phase='auction';
+	}
+	if (st.phase == 'auction') {
+		//st.phase='game';
+		if (st.cards==0) st.phase='deal';
+	}
+	if (st.phase == 'game') {
+		if (st.cards == 0) st.phase='deal';
+	}
+	if (st.players<4) st.phase='wait';
+}
+function saveState(st) {
+	calcState(st);
 	saveLocal('bridge.state',st);
 }
 function readState() {
@@ -38,22 +68,18 @@ function readState() {
 	if (!st.user) st.user='';
 	if (!st.table) st.table='';
 	if (!st.phase) st.phase='';
-	if (!st.info) st.info={};
+	calcState(st);
 	return st;
 }
 function showState() {
 	var st = readState();
-	st.info='';
-	log('showState: '+st.phase);
+	st.error='';
 	if (isEmpty(st.phase)) {
 		showJoin(st);
 	}
-	else if (st.phase == 'joined') {
+	else {
 		getInfo(st);
 		showTable(st);
-	}
-	else {
-		showJoin(st);
 	}
 }
 function onJoinReady(rc,tx) {
@@ -65,11 +91,12 @@ function onJoinReady(rc,tx) {
 	var st = readState();
 	var o = JSON.parse(tx);
 	st.error=o['error'];
-	st.info=o['info'];
-	if (st.info) st.phase='joined';
-	else st.phase='join';
+	st.info=o['state'];
+	if (st.info) st.phase='wait';
+	else st.phase='';
+	transState(st);
 	saveState(st);
-	if (!st.info) showJoin(st);
+	if (!st.phase) showJoin(st);
 	else showTable(st);
 }
 function onExitReady(rc,tx) {
@@ -79,10 +106,14 @@ function onExitReady(rc,tx) {
 		return ;
 	}
 	var st = readState();
-	var o = JSON.parse(tx);
-	st.error=o['error'];
-	st.info='';
-	st.phase='';
+	try {
+		var o = JSON.parse(tx);
+		st.error=o['error'];
+		st.info=null;
+		st.phase='';
+	}catch(e) {
+		st.error=e.toString()+'<br>'+tx;
+	}
 	saveState(st);
 	showJoin(st);
 }
@@ -93,35 +124,117 @@ function onGetInfoReady(rc,tx) {
 		return ;
 	}
 	var st = readState();
-	var o = JSON.parse(tx);
-	st.error=o['error'];
-	st.info=o['info'];
+	try {
+		var o=JSON.parse(tx);
+		st.error=o['error'];
+		st.info=o['state'];
+		calcState(st);
+		transState(st);
+	}
+	catch(e) {
+		st.error=e.toString()+'<br>'+tx;
+	}
 	saveState(st);
 	if (!st.info) showJoin(st);
 	else showTable(st);
 }
+function makePlayer(ph,pd) {
+	var p = new Player();
+	p.setName(pd.name);
+	p.phase=ph;
+	for (var fc of pd.hand) {
+		var fig = fc.substring(0,fc.length-1);
+		var suit = fc.substring(fc.length-1,fc.length);
+		if (suit=='s') p.addSpade(fig);
+		else if (suit=='h') p.addHeart(fig);
+		else if (suit=='d') p.addDiamond(fig);
+		else p.addClub(fig);
+	}
+	p.sort();
+	return p;
+}
+function boardView(st) {
+	var s='<table class="board">';
+	s += '<tr><td> </td><td class="north"> N </td><td> </td></tr>';
+	s += '<tr><td class="west"> W </td><td> </td><td class="east"> E </td></tr>';
+	s += '<tr><td> </td><td class="south"> S </td><td> </td></tr>';
+	return s+'</table>';
+}
+function ddlist(obj) {
+	//var divs = obj.parentNode.getElementsByTagName('div');
+	//for (var d of divs) {
+	for (var d=obj.nextSibling; d; d=d.nextSibling) {
+		if (d.nodeName.toLowerCase() != 'div') continue;
+		if (d.style.display == 'inline') d.style.display = 'none';
+		else {
+			d.style.display = 'inline';
+		}
+	}
+}
 function showTable(st) {
-	$('status').innerHTML = st.user+', you are at table ['+st.table+']';
+	$('status').innerHTML = 'Hi '+st.user+', you are at table `'+st.table+'`'+' ['+st.phase+']';
+
 	var s='<div>';
+
+	if (st.phase=='auction') {
+		s += '<div class="ddlist">'
+		s += '<input type="button" value="bid" onclick="ddlist(this)"><br>';
+		s += '<div class="bids">';
+		s += Bridge.bids();
+		s += '</div></div>';
+	}
+	else if (st.phase=='deal') {
+        s += ' <input type="button" value="deal" onclick="dealCards()">';
+    }
+	if (st.players > 0)
+		s += '<input type="button" value="AI-" onclick="removeAI()">'
+	if (st.players < 4)
+		s += '<input type="button" value="AI+" onclick="joinAI()">'
+
+	if (st.cards>0)
+		s += '<input type="button" value="reset" onclick="resetTable()">'
 	s += '<input type="button" value="exit" onclick="exitTable()">'
-	if (st.info.players < 4)
-		s += ' <span>waiting for players';
-	else if (!st.info.cards)
-		s += ' <input type="button" value="deal" onclick="dealCards()">';
+
+	if (st.phase=='wait') {
+		s += ' <span>waiting for players</span>';
+	}
+	else if (st.phase=='game') {
+	}
 	s += '</div>';
-	s += '<table class="brt">';
-	s += '<tr><td></td><td>'+st.info.north+'(N)</td><td></td></tr>';
-	s += '<tr><td>'+st.info.west+'(W)</td><td class="brt"></td><td>(E)'+st.info.east+'</td></tr>';
-	s += '<tr><td></td><td>'+st.info.south+'(S)</td><td></td></tr>';
+
+	var p1=makePlayer(st.phase,st.info.west);
+	var p2=makePlayer(st.phase,st.info.north);
+	var p3=makePlayer(st.phase,st.info.east);
+	var p4=makePlayer(st.phase,st.info.south);
+	if (p1.getName()==st.user) p1.user=true;
+	else if (p2.getName()==st.user) p2.user=true;
+	else if (p3.getName()==st.user) p3.user=true;
+	else if (p4.getName()==st.user) p4.user=true;
+	s += '<table class="table">';
+	s += '<tr><td></td><td>'+p2.view()+'</td><td></td></tr>';
+	s += '<tr><td>'+p1.view()+'</td>';
+	s += '<td class="board">'+boardView(st)+'</td>';
+	s += '<td class>'+p3.view()+'</td></tr>';
+	s += '<tr><td></td><td>'+p4.view()+'</td><td></td></tr>';
 	s += '</table>';
 	$('content').innerHTML=s;
-	if (st.error) {
-		$('error').innerHTML=st.error;
-	}
+	if (st.error) $('error').innerHTML=st.error;
+	else $('error').innerHTML='';
+}
+function putCard(u,c) {
+	var st = readState();
+	var u='u='+u+'&t='+st.table+'&c='+c;
+	ajax.async('get','<%val("cfg.rooturl")%>api/put?'+u,onGetInfoReady);
 }
 function getInfo(st) {
 	var u='u='+st.user+'&t='+st.table;
 	ajax.async('get','<%val("cfg.rooturl")%>api/getinfo?'+u,onGetInfoReady);
+}
+function setBid(obj) {
+	var bid=obj.getAttribute('bid');
+	var st = readState();
+	var u='u='+st.user+'&t='+st.table+'&bid='+bid;
+	ajax.async('get','<%val("cfg.rooturl")%>api/setbid?'+u,onGetInfoReady);
 }
 function joinTable() {
 	var st = readState();
@@ -138,6 +251,21 @@ function exitTable() {
 	var u='u='+st.user+'&t='+st.table;
     ajax.async('get','<%val("cfg.rooturl")%>api/exit?'+u,onExitReady);
 }
+function resetTable() {
+	var st = readState();
+	var u='u='+st.user+'&t='+st.table;
+    ajax.async('get','<%val("cfg.rooturl")%>api/reset?'+u,onGetInfoReady);
+}
+function joinAI() {
+	var st = readState();
+	var u='u='+st.user+'&t='+st.table;
+    ajax.async('get','<%val("cfg.rooturl")%>api/joinai?'+u,onGetInfoReady);
+}
+function removeAI() {
+	var st = readState();
+	var u='u='+st.user+'&t='+st.table;
+    ajax.async('get','<%val("cfg.rooturl")%>api/removeai?'+u,onGetInfoReady);
+}
 function dealCards() {
 	log('dealCards');
 	var st = readState();
@@ -147,23 +275,16 @@ function dealCards() {
 
 function showJoin(st) {
 	log('showJoin');
-	var s='Join table to play<br>';
-	s += 'Your name: ';
-	s += '<input id="user" type="text" value="'+st.user+'" size="10" placeholder="your name"><br>';
-	s += 'Table name: ';
-	s += '<input id="table" type="text" value="'+st.table+'" size="10" placeholder="table name"> ';
-	s += '<input type="button" value="join" onclick="joinTable()"><br>';
+	var s='<table><tr><th colspan="2">Join table to play</td></tr>';
+	s += '<tr><td>Your name: </td>';
+	s += '<td><input id="user" type="text" value="'+st.user+'" size="10" placeholder="your name"></td></tr>';
+	s += '<tr><td>Table name: </td>';
+	s += '<td><input id="table" type="text" value="'+st.table+'" size="10" placeholder="table name"> </td>';
+	s += '<td><input type="button" value="join" onclick="joinTable()"></tr></table>';
 	$('content').innerHTML=s;
-}
-function showdeck() {
-	var c = deck.getCards();
-	var s='';
-	for (var i=0; i < c.length; ++i) {
-		s+='<span>';
-		s+=c[i].fig+'<img src="res/'+c[i].col+'.gif">';
-		s+='</span> ';
-	}
-	$('cards').innerHTML=s;
+
+	if (st.error) $('error').innerHTML=st.error;
+	else $('error').innerHTML='';
 }
 </script>
 </body></html>

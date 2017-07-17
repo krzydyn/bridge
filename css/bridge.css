@@ -1,12 +1,47 @@
-table.brt td {
+.name {
+	font-weight:bold;
+	border:1px solid gray;
+	border-radius:4px;
+	padding: 0px 5px;
+	background-color:#999;
+	display:inline-block;
+	margin-bottom:2px;
+}
+table.table>tbody>tr>td {
 	text-align:center;
 	vertical-align:middle;
-	padding: 5px;
+	padding: 3px;
 }
-td.brt {
-	border:1px solid black;
-	border-radius:5px;
-	background-color:rgba(150,150,150,0.9);
-	width:200px;
-	height:200px;
+td.board {
+	border:1px solid gray;
+	border-radius:4px;
+	padding: 5px;
+	background-color:#5A5;
+	width:150px;
+	height:150px;
+}
+table.board {
+	width:100%;height:100%;
+}
+table.board>tbody>tr>td {
+	padding:5px;
+	font-size:14pt;
+	font-weight:bold;
+	font-family:;
+}
+td.west {
+	vertical-align:middle;
+	text-align:left;
+}
+td.north {
+	vertical-align:top;
+	text-align:center;
+}
+td.east {
+	vertical-align:middle;
+	text-align:right;
+}
+td.south {
+	vertical-align:bottom;
+	text-align:center;
 }

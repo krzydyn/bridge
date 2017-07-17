@@ -1,12 +1,38 @@
 <?php
+global $seat;
+$seat=array("west","north","east","south");
+
+class Player {
+	var $name="";
+	var $hand=array();
+}
+class State {
+	function __construct() {
+		$this->west=new Player();
+		$this->north=new Player();
+		$this->east=new Player();
+		$this->south=new Player();
+	}
+	var $phase="";
+	var $dealer="";
+	var $player="";  //current player
+	var $bids="";    //list of bids
+	var $declararer; //first suit bid same as in contract
+	var $contract;   //final contract
+	var $west;
+	var $north;
+	var $east;
+	var $south;
+}
+
 function updateTable($db,$row) {
 	$row["expireOn"]=time()+3600;
-	$r=$db->query("update tables set west=?,north=?,east=?,south=?,expireOn=? where name=?",
-		array(1=>$row["west"],2=>$row["north"],3=>$row["east"],4=>$row["south"],5=>$row["expireOn"],
-				6=>$row["name"]));
+	$r=$db->query("update tables set expireOn=?,state=? where name=?",
+		array(1=>$row["expireOn"],2=>$row["state"],3=>$row["name"]));
 	return $r;
 }
 function api_join($a) {
+	global $seat;
 	$db=null;
 	try {
 		$db = DB::connectDefault();
@@ -17,44 +43,70 @@ function api_join($a) {
 	}
 	$u=$a["u"];
 	$t=$a["t"];
-	$q="select * from tables where name=?";
-	$r=$db->query($q,array("1"=>$t));
+	$r=$db->query("select name,state from tables where name=?",array("1"=>$t));
 	if ($r===false) {
 		echo json_encode(array("error"=>$db->errmsg()));
 		return;
 	}
 	$row=$r->fetch();
 	if (!$row) {
-		$r=$db->query("insert into tables (name,west,north,east,south,expireOn)"
-						." values (?,?,'','','',?)",
-						array(1=>$t,2=>$u,3=>time()+3600));
+		$state = new State();
+		$state->phase="wait";
+		$state->west->name=$u;
+		$r=$db->query("insert into tables (name,expireOn,state) values (?,?,?)",
+						array(1=>$t,2=>(time()+3600),3=>json_encode($state)));
 		if ($r===false) {
 			echo json_encode(array("error"=>$db->errmsg()));
 			return;
 		}
 	}
 	else {
-		$seat=array("west","north","east","south");
 		$k="";
-		foreach ($seat as $k) {
-			if ($row[$k]==$u) break;
-		}
-		logstr("select table ".print_r($row,true));
-		if ($row[$k] != $u) {
+		$state = json_decode($row["state"]);
+		if ($u=="ai") {
+			$n=1;
 			foreach ($seat as $k) {
-				if (!$row[$k]) { $row[$k]=$u; break; }
+				if (strtoupper(substr($state->$k->name,0,2))=="AI") ++$n;
+			}
+			$u="AI_".$n;
+		}
+		//check if already exist
+		foreach ($seat as $k) {
+			if ($state->$k->name == $u) break;
+		}
+		if ($state->$k->name == $u) {
+		}
+		else {
+			//find empty seat and sit down
+			foreach ($seat as $k) {
+				if (!$state->$k->name) { $state->$k->name=$u; break; }
 			}
 		}
+		$n=0;
+		foreach ($seat as $k) {
+			if ($state->$k->name) ++$n;
+		}
+		if ($n==4) $state->phase="deal";
+		$row["state"]=json_encode($state);
 		if (updateTable($db,$row)===false) {
 			echo json_encode(array("error"=>$db->errmsg()));
 			return;
 		}
+		logstr("table $t found: ".print_r($state,true));
 	}
-	logstr("table $t found: ".print_r($row,true));
 	$db->close();
 	api_getinfo($a);
 }
-function api_exit($a) {
+function api_joinai($a) {
+	$a["u"]="ai";
+	api_join($a);
+}
+function api_removeai($a) {
+	$a["u"]="ai";
+	api_exit($a);
+}
+function api_reset($a) {
+	global $seat;
 	$db=null;
 	try {
 		$db = DB::connectDefault();
@@ -65,29 +117,33 @@ function api_exit($a) {
 	}
 	$u=$a["u"];
 	$t=$a["t"];
-	$q="select * from tables where name=?";
-	$r=$db->query($q,array("1"=>$t));
+	$r=$db->query("select name,state from tables where name=?",array("1"=>$t));
 	if ($r===false) {
 		echo json_encode(array("error"=>$db->errmsg()));
 		return;
 	}
 	$row=$r->fetch();
-	if (!$row) { }
+	if (!$row) {
+		echo json_encode(array("error"=>"no such table"));
+		return;
+	}
 	else {
-		$seat=array("west","north","east","south");
-		$k="";
+		$state = json_decode($row["state"]);
 		foreach ($seat as $k) {
-			if ($row[$k]==$u) {$row[$k]="";break;}
+			$state->$k->hand=array();
 		}
+		
+		$row["state"]=json_encode($state);
 		if (updateTable($db,$row)===false) {
 			echo json_encode(array("error"=>$db->errmsg()));
 			return;
 		}
 	}
-	echo json_encode(array("info"=>""));
+	$db->close();
+	api_getinfo($a);
 }
-
-function api_getinfo($a) {
+function api_exit($a) {
+	global $seat;
 	$db=null;
 	try {
 		$db = DB::connectDefault();
@@ -98,31 +154,75 @@ function api_getinfo($a) {
 	}
 	$u=$a["u"];
 	$t=$a["t"];
-	if ($t) {
-		$q="select * from tables where name=?";
-		$r=$db->query($q,array("1"=>$t));
-	}
-	else $r=$db->query("select * from tables");
+	$r=$db->query("select name,state from tables where name=?",array("1"=>$t));
 	if ($r===false) {
 		echo json_encode(array("error"=>$db->errmsg()));
 		return;
 	}
-	$seat=array("west","north","east","south");
-	$tables=array();
-	while ($row=$r->fetch()) {
-		foreach ($seat as $k) {
-			if (!$row[$k]) $row[$k]="";
-		}
-		$tables[]=$row;
+	$row=$r->fetch();
+	if (!$row) {
+		echo json_encode(array("error"=>"no such table"));
+		return;
 	}
-	logstr("info(".$u.") ".print_r($tables[0],true));
-	if (sizeof($tables) == 0) echo json_encode(array("error"=>"Table '$t' not found"));
-	else if ($t) echo json_encode(array("info"=>$tables[0]));
-	else echo json_encode(array("tables"=>$tables));
+	else {
+		$state = json_decode($row["state"]);
+		$k="";
+		if ($u=="ai") {
+			foreach ($seat as $k) {
+				if (strtoupper(substr($state->$k->name,0,2))=="AI") $u=$state->$k->name;
+			}
+		}
+		foreach ($seat as $k) {
+			if ($state->$k->name==$u) {$state->$k->name="";break;}
+		}
+		//fix array
+		foreach ($seat as $k) {
+			if (!is_array($state->$k->hand)) $state->$k->hand=array();
+		}
+		
+		$row["state"]=json_encode($state);
+		if (updateTable($db,$row)===false) {
+			echo json_encode(array("error"=>$db->errmsg()));
+			return;
+		}
+	}
+	$db->close();
+	api_getinfo($a);
+}
+
+function api_getinfo($a) {
+	global $seat;
+	$db=null;
+	try {
+		$db = DB::connectDefault();
+	}
+	catch(Exception $e) {
+		echo json_encode(array("error"=>get_class($e).": ".$e->getMessage()));
+		return ;
+	}
+	$u=$a["u"];
+	$t=$a["t"];
+	$r=$db->query("select name,state from tables where name=?",array("1"=>$t));
+	if ($r===false) {
+		echo json_encode(array("error"=>$db->errmsg()));
+		return;
+	}
+	$row=$r->fetch();
+	if (!$row) {
+		$state=new State();
+	}
+	else {
+		$state = json_decode($row["state"]);
+		foreach ($seat as $k) {
+			if (!is_array($state->$k->hand))
+				$state->$k->hand=array();
+		}
+	}
+	echo json_encode(array("state"=>$state));
 }
 
 class Card {
-	function __constructor($f,$c) {$this->fig=$f; $this->col=$c;}
+	function __construct($f,$c) {$this->fig=$f; $this->col=$c;}
 	var $fig;
 	var $col;
 }
@@ -144,6 +244,7 @@ function shuffleCards() {
 }
 
 function api_deal($a) {
+	global $seat;
 	$db=null;
 	try {
 		$db = DB::connectDefault();
@@ -154,10 +255,64 @@ function api_deal($a) {
 	}
 	$u=$a["u"];
 	$t=$a["t"];
-	$q="select * from tables where name=?";
-	$r=$db->query($q,array("1"=>$t));
-	$c = shuffleCards();
+	$r=$db->query("select name,state from tables where name=?",array("1"=>$t));
+	if ($r===false) {
+		echo json_encode(array("error"=>$db->errmsg()));
+		return;
+	}
+	if ($row=$r->fetch()) {
+		$state=json_decode($row["state"]);
+		$cards = shuffleCards();
+		foreach ($seat as $k) {
+			$state->$k->hand=array();
+		}
+		for ($i=0; $i<sizeof($cards); ) {
+			foreach ($seat as $k) {
+				$state->$k->hand[]=$cards[$i]->fig.$cards[$i]->col;
+				++$i;
+			}
+		}
+		$state->phase="auction";
+		$row["state"]=json_encode($state);
+		updateTable($db,$row);
+	}
 	$db->close();
+	api_getinfo($a);
+}
+function api_put($a) {
+	global $seat;
+	$db=null;
+	try {
+		$db = DB::connectDefault();
+	}
+	catch(Exception $e) {
+		echo json_encode(array("error"=>get_class($e).": ".$e->getMessage()));
+		return ;
+	}
+	$u=$a["u"];
+	$t=$a["t"];
+	$c=$a["c"];
+
+	$r=$db->query("select name,state from tables where name=?",array("1"=>$t));
+	if ($r===false) {
+		echo json_encode(array("error"=>$db->errmsg()));
+		return;
+	}
+	if ($row=$r->fetch()) {
+		$state=json_decode($row["state"]);
+		foreach ($seat as $k) {
+			if ($state->$k->name==$u) {
+				$state->$k->hand = array_values(array_diff($state->$k->hand,array($c)));
+			}
+		}
+		$row["state"]=json_encode($state);
+		updateTable($db,$row);
+	}
+
+	$db->close();
+	api_getinfo($a);
+}
+function api_setbid($a){
 	api_getinfo($a);
 }
 ?>
