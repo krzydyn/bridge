@@ -12,7 +12,11 @@
   <link rel="stylesheet" href="<%val("cfg.rooturl")%>css/bridge.css" type="text/css"/>
 </head>
 <body>
+<table class="pack"><tr><td>
 <div id="status"></div>
+</td><td>
+<div id="loading" class="loading"><img src="<%val("cfg.rooturl")%>icony/loading_small.gif"></div>
+</td></tr></table><br>
 <div class="pack left" id="content"></div>
 <div id="error"></div>
 
@@ -41,6 +45,7 @@ function calcState(st) {
 		if (st.info.south.hand) n+=st.info.south.hand.length;
 		st.cards=n;
 	}
+	else st.phase='';
 }
 function transState(st) {
 	if (st.phase == 'wait') {
@@ -60,7 +65,10 @@ function transState(st) {
 }
 function saveState(st) {
 	calcState(st);
+	var e=st.error;
+	st.error='';
 	saveLocal('bridge.state',st);
+	st.error=e;
 }
 function readState() {
 	var st = readLocal('bridge.state');
@@ -68,41 +76,23 @@ function readState() {
 	if (!st.user) st.user='';
 	if (!st.table) st.table='';
 	if (!st.phase) st.phase='';
+	st.error='';
 	calcState(st);
 	return st;
 }
 function showState() {
 	var st = readState();
-	st.error='';
+	log('saved state = '+st.phase);
 	if (isEmpty(st.phase)) {
 		showJoin(st);
 	}
 	else {
 		getInfo(st);
-		showTable(st);
 	}
-}
-function onJoinReady(rc,tx) {
-	$('status').innerHTML = '';
-	if (rc!=200) {
-		$('status').innerHTML = 'error '+rc;
-		return ;
-	}
-	var st = readState();
-	var o = JSON.parse(tx);
-	st.error=o['error'];
-	st.info=o['state'];
-	if (st.info) st.phase='wait';
-	else st.phase='';
-	transState(st);
-	saveState(st);
-	if (!st.phase) showJoin(st);
-	else showTable(st);
 }
 function onExitReady(rc,tx) {
-	$('status').innerHTML = '';
 	if (rc!=200) {
-		$('status').innerHTML = 'error '+rc;
+		$('error').innerHTML = 'error '+rc;
 		return ;
 	}
 	var st = readState();
@@ -114,34 +104,46 @@ function onExitReady(rc,tx) {
 	}catch(e) {
 		st.error=e.toString()+'<br>'+tx;
 	}
+	if (st.error) $('error').innerHTML=st.error;
+	else $('error').innerHTML='';
 	saveState(st);
 	showJoin(st);
 }
 function onGetInfoReady(rc,tx) {
-	$('status').innerHTML = '';
 	if (rc!=200) {
-		$('status').innerHTML = 'error '+rc;
+		$('error').innerHTML = 'error '+rc;
 		return ;
 	}
 	var st = readState();
 	try {
 		var o=JSON.parse(tx);
-		st.error=o['error'];
-		st.info=o['state'];
+		if (o['error']) {
+			st.error=o['error'];
+			log("st.error="+st.error);
+		}
+		else st.error='';
+		if (o['state']) {
+			st.info=o['state'];
+			st.phase=st.info.phase;
+		}
 		calcState(st);
 		transState(st);
 	}
 	catch(e) {
+		log(e);
 		st.error=e.toString()+'<br>'+tx;
 	}
 	saveState(st);
-	if (!st.info) showJoin(st);
+	if (st.error) $('error').innerHTML=st.error;
+	else $('error').innerHTML='';
+	if (!st.phase) showJoin(st);
 	else showTable(st);
 }
 function makePlayer(ph,pd) {
 	var p = new Player();
 	p.setName(pd.name);
 	p.phase=ph;
+	p.face=pd.face;
 	for (var fc of pd.hand) {
 		var fig = fc.substring(0,fc.length-1);
 		var suit = fc.substring(fc.length-1,fc.length);
@@ -153,16 +155,29 @@ function makePlayer(ph,pd) {
 	p.sort();
 	return p;
 }
+function faceView(f) {
+	if (!f) return '';
+	var s='<div class="face">';
+	if (f=='P') s+='pass';
+	else if (f=='D') s+='double';
+	else if (f=='R') s+='redouble';
+	else {
+		var fig = f.substring(0,f.length-1);
+		var suit = f.substring(f.length-1,f.length);
+		if (suit=='N') s+=fig+' NT';
+		else s+=fig+' <img width="15" src="'+rooturl+'res/'+suit+'.gif">';
+	}
+	s += '</div>';
+	return s;
+}
 function boardView(st) {
 	var s='<table class="board">';
-	s += '<tr><td> </td><td class="north"> N </td><td> </td></tr>';
-	s += '<tr><td class="west"> W </td><td> </td><td class="east"> E </td></tr>';
-	s += '<tr><td> </td><td class="south"> S </td><td> </td></tr>';
+	s += '<tr><td> </td><td class="north"> N'+faceView(st.north.face)+' </td><td> </td></tr>';
+	s += '<tr><td class="west"> W'+faceView(st.west.face)+' </td><td> </td><td class="east"> E'+faceView(st.east.face)+' </td></tr>';
+	s += '<tr><td> </td><td class="south"> S'+faceView(st.south.face)+' </td><td> </td></tr>';
 	return s+'</table>';
 }
 function ddlist(obj) {
-	//var divs = obj.parentNode.getElementsByTagName('div');
-	//for (var d of divs) {
 	for (var d=obj.nextSibling; d; d=d.nextSibling) {
 		if (d.nodeName.toLowerCase() != 'div') continue;
 		if (d.style.display == 'inline') d.style.display = 'none';
@@ -213,13 +228,12 @@ function showTable(st) {
 	s += '<table class="table">';
 	s += '<tr><td></td><td>'+p2.view()+'</td><td></td></tr>';
 	s += '<tr><td>'+p1.view()+'</td>';
-	s += '<td class="board">'+boardView(st)+'</td>';
+	s += '<td class="board">'+boardView(st.info)+'</td>';
 	s += '<td class>'+p3.view()+'</td></tr>';
 	s += '<tr><td></td><td>'+p4.view()+'</td><td></td></tr>';
 	s += '</table>';
 	$('content').innerHTML=s;
-	if (st.error) $('error').innerHTML=st.error;
-	else $('error').innerHTML='';
+
 }
 function putCard(u,c) {
 	var st = readState();
@@ -233,7 +247,9 @@ function getInfo(st) {
 function setBid(obj) {
 	var bid=obj.getAttribute('bid');
 	var st = readState();
-	var u='u='+st.user+'&t='+st.table+'&bid='+bid;
+	//log(st);
+	var user = st.info.player ? st.info.player : s.user;
+	var u='u='+user+'&t='+st.table+'&bid='+bid;
 	ajax.async('get','<%val("cfg.rooturl")%>api/setbid?'+u,onGetInfoReady);
 }
 function joinTable() {
@@ -242,9 +258,8 @@ function joinTable() {
 	if (!isEmpty($('table').value)) st.table = $('table').value;
 	saveState(st);
 
-	$('status').innerHTML = 'connecting <img src="<%val("cfg.rooturl")%>icony/loading_small.gif"><br>';
 	var u='u='+st.user+'&t='+st.table;
-	ajax.async('get','<%val("cfg.rooturl")%>api/join?'+u,onJoinReady);
+	ajax.async('get','<%val("cfg.rooturl")%>api/join?'+u,onGetInfoReady);
 }
 function exitTable() {
 	var st = readState();

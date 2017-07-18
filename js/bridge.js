@@ -35,6 +35,7 @@ var Player = function() {
 	var hearts = [];
 	var diamonds = [];
 	var clubs = [];
+
 	function addlink(f,c) {
 		if (that.phase=='game')
 			return '<input type="button" value="'+f+'" onclick="putCard(\''+name+'\',\''+c+'\')">';
@@ -45,7 +46,9 @@ var Player = function() {
 		return cardFig.indexOf(a)-cardFig.indexOf(b);
 	}
 
-	this.user=false;
+	this.phase = '';
+	this.face = '';
+
 	this.setName = function(n) {name=n;}
 	this.addSpade = function(f) { spades.push(f); }
 	this.addHeart = function(f) { hearts.push(f); }
@@ -85,17 +88,17 @@ Bridge.bids = function() {
 	var rsuit = ['c','d','h','s'];
 	var s='<table><tr>';
 	s += '<td colspan="7"><ul class="horiz">';
-	s += '<li bid="pa" onclick="setBid(this)">pass';
-	s += '<li bid="co" onclick="setBid(this)">contra';
-	s += '<li bid="re" onclick="setBid(this)">recontra';
+	s += '<li bid="P" onclick="setBid(this)">pass';
+	s += '<li bid="D" onclick="setBid(this)">double';
+	s += '<li bid="R" onclick="setBid(this)">redouble';
 	s += '</ul></td></tr><tr>';
 	for (var i=1; i <= 7; ++i) {
 		s += '<td><ul>';
 		for (var su of rsuit) {
 			s += '<li bid="'+i+su+'" onclick="setBid(this)">'+i;
-			s += ' <img width="15" src="'+rooturl+'res/'+su+'.gif">'
+			s += ' <img width="15px" src="'+rooturl+'res/'+su+'.gif">'
 		}
-		s += '<li bid="'+i+'n" onclick="setBid(this.getAttribute(\'bid\'))">'+i+' NT';
+		s += '<li bid="'+i+'N" onclick="setBid(this)">'+i+' NT';
 		s += '</ul></td>';
 	}
 	s += '</ul></td></tr></table>';

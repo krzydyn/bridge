@@ -68,15 +68,17 @@ fieldset>table>tbody>tr>td{
 .abs {position:absolute;}
 .bold {font-weight:bold;}
 
-.autocomplete-loading {
+.loading {
+	z-index:100;
 	position:absolute;
 	display:none;
 }
-.autocomplete-loading>img {
+.loading>img {
 	position:relative;
 	padding:5px;
-	left:-30px;
 }
+
+/* Autocomplete input */
 .autocomplete {
 	text-align:left;
 	position:absolute;
@@ -103,7 +105,15 @@ fieldset>table>tbody>tr>td{
 	background-color:rgba(200,200,200,1);
 }
 
-/* Dropdown list */
+/* Dropdown list
+ * the structure have to be:
+ * <div class="ddlist">
+ *    <input type="button" onclick="">
+ *    <div>
+ *    <ul><li>...
+ *    </div>
+ * </div>
+ */
 .ddlist {
 	display:inline-block;
 }
@@ -134,20 +144,8 @@ fieldset>table>tbody>tr>td{
 .ddlist>div ul>li:hover {
 	background-color:#CCC;
 }
-ul.horiz {
-	padding:3px 5px;
-	margin:0;
-}
 ul.horiz>li {
 	display:inline;
-	padding:1px 3px;
-	list-style:none;
-	cursor:pointer;
-	border-radius:5px;
-	white-space:nowrap;
-}
-ul.horiz>li:hover {
-	background-color:#CCC;
 }
 
 .abs-right {position:absolute;right:100px;}
