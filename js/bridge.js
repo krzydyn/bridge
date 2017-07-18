@@ -30,31 +30,32 @@ function Deck() {
 
 var Player = function() {
 	var that=this;
-	var name='';
 	var spades = [];
 	var hearts = [];
 	var diamonds = [];
 	var clubs = [];
 
+	this.phase = '';
+	this.name = '';
+	this.face = '';
+	this.current = 0;
+
 	function addlink(f,c) {
-		if (that.phase=='game')
-			return '<input type="button" value="'+f+'" onclick="putCard(\''+name+'\',\''+c+'\')">';
-		//return '<input type="button" value="'+f+'" disabled">';
+		if (that.phase=='game') {
+			if (that.current)
+				return '<input type="button" value="'+f+'" onclick="putCard(\''+that.name+'\',\''+c+'\')">';
+			return '<input class="disabled" type="button" value="'+f+'">';
+		}
 		return ' '+f;
 	}
 	function cmp(a,b) {
 		return cardFig.indexOf(a)-cardFig.indexOf(b);
 	}
 
-	this.phase = '';
-	this.face = '';
-
-	this.setName = function(n) {name=n;}
 	this.addSpade = function(f) { spades.push(f); }
 	this.addHeart = function(f) { hearts.push(f); }
 	this.addDiamond = function(f) { diamonds.push(f); }
 	this.addClub = function(f) { clubs.push(f); }
-	this.getName = function() {return name;}
 	this.sort = function() {
 		spades.sort(cmp);
 		hearts.sort(cmp);
@@ -63,7 +64,8 @@ var Player = function() {
 	}
 
 	this.view = function() {
-		var s='<span class="name">'+name+'</span><br>';
+		var cur = that.current ? "active" : "";
+		var s='<span class="name '+cur+'">'+that.name+'</span><br>';
 		if (spades.length+hearts.length+diamonds.length+clubs.length==0) return s;
 		s += '<div class="left nowrap pack">';
 		s += '<img width="15" src="'+rooturl+'res/s.gif">';

@@ -139,11 +139,12 @@ function onGetInfoReady(rc,tx) {
 	if (!st.phase) showJoin(st);
 	else showTable(st);
 }
-function makePlayer(ph,pd) {
+function makePlayer(st,pd) {
 	var p = new Player();
-	p.setName(pd.name);
-	p.phase=ph;
+	p.name=pd.name;
+	p.phase=st.phase;
 	p.face=pd.face;
+	p.current = (pd.name == st.info.player) ? 1 : 0;
 	for (var fc of pd.hand) {
 		var fig = fc.substring(0,fc.length-1);
 		var suit = fc.substring(fc.length-1,fc.length);
@@ -217,14 +218,10 @@ function showTable(st) {
 	}
 	s += '</div>';
 
-	var p1=makePlayer(st.phase,st.info.west);
-	var p2=makePlayer(st.phase,st.info.north);
-	var p3=makePlayer(st.phase,st.info.east);
-	var p4=makePlayer(st.phase,st.info.south);
-	if (p1.getName()==st.user) p1.user=true;
-	else if (p2.getName()==st.user) p2.user=true;
-	else if (p3.getName()==st.user) p3.user=true;
-	else if (p4.getName()==st.user) p4.user=true;
+	var p1=makePlayer(st,st.info.west);
+	var p2=makePlayer(st,st.info.north);
+	var p3=makePlayer(st,st.info.east);
+	var p4=makePlayer(st,st.info.south);
 	s += '<table class="table">';
 	s += '<tr><td></td><td>'+p2.view()+'</td><td></td></tr>';
 	s += '<tr><td>'+p1.view()+'</td>';

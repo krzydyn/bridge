@@ -1,6 +1,8 @@
 <?php
-global $seat;
+global $seat,$cardFig,$cardSuit;
 $seat=array("west","north","east","south");
+$cardFig = array( 'A','K','Q','J','10','9','8','7','6','5','4','3','2' );
+$cardSuit = array( 's','h','d','c' );
 
 class Player {
 	var $name="";
@@ -30,6 +32,17 @@ function updateTable($db,$row) {
 	$r=$db->query("update tables set expireOn=?,state=? where name=?",
 		array(1=>$row["expireOn"],2=>$row["state"],3=>$row["name"]));
 	return $r;
+}
+function resetState($state) {
+	global $seat;
+	foreach ($seat as $k) {
+		$state->$k->hand=array();
+		$state->$k->face="";
+	}
+	$state->phase="deal";
+	$state->dealer="";
+	$state->player="";
+	$state->bids=array();
 }
 function api_join($a) {
 	global $seat;
@@ -218,15 +231,7 @@ function api_reset($a) {
 	}
 	else {
 		$state = json_decode($row["state"]);
-		foreach ($seat as $k) {
-			$state->$k->hand=array();
-			$state->$k->face="";
-		}
-		$state->phase="deal";
-		$state->dealer="";
-		$state->player="";
-		$state->bids=array();
-		
+		resetState($state);
 		$row["state"]=json_encode($state);
 		if (updateTable($db,$row)===false) {
 			echo json_encode(array("error"=>$db->errmsg()));
@@ -243,11 +248,10 @@ class Card {
 	var $col;
 }
 function shuffleCards() {
-	$cardFig = array( 'A','K','Q','J','10','9','8','7','6','5','4','3','2' );
-	$cardCol = array( 's','h','d','c' );
+	global $cardFig,$cardSuit;
 	$cards = array();
 	foreach ($cardFig as $fig) {
-        foreach ($cardCol as $col)
+        foreach ($cardSuit as $col)
             $cards[] = new Card($fig,$col);
     }
 	for ($i = sizeof($cards); $i>0; --$i) {
@@ -328,19 +332,58 @@ function api_deal($a) {
 	$db->close();
 	api_getinfo($a);
 }
-
-function checkBidAllowed($st,$bid) {
+function cmpbid($b1,$b2) {
+	$suit=array('c','d','h','s','N');
+	$f1=substr($b1,0,1);
+	$f2=substr($b2,0,1);
+	$i = $f1 - $f2;
+	if ($i != 0) return $i;
+	$f1=substr($b1,1);
+	$f2=substr($b2,1);
+	return array_search($f1,$suit) - array_search($f2,$suit);
+}
+function checkBidAllowed($st,$b) {
+	if ($b=='P') return true;
+	$l=sizeof($st->bids);
+	if ($l==0) {
+		if ($b=='D' || $b=='R') return false;
+		return true;
+	}
+	$bid=$st->bids[$l-1];
+	if ($b=='D') {
+		if ($bid=='P' || $bid=='D' || $bid=='R') return false;
+		return true;
+	}
+	if ($b=='R') {
+		if ($bid=='D') return true;
+		return false;
+	}
+	//valuable bid
+	for ($i=sizeof($st->bids); $i>0; ) {
+		--$i;
+		$bid = $st->bids[$i];
+		if ($bid=='P' || $bid=='D' || $bid=='R') ;
+		else break;
+	}
+	return cmpbid($bid,$b) < 0;
 }
 function checkEndAuction($st) {
 	global $seat;
 	if ($st->phase != "auction") return ;
 	$n=0;
-	for ($i=sizeof($st->bids); $i>0; ) {
-		--$i;
-		$bid = $st->bids[$i];
-		if ($bid=='P' || $bid=='D' || $bid=='R') ++$n;
+	$l = sizeof($st->bids);
+	if ($l >= 4) {
+		for ($i=sizeof($st->bids); $i>0; ) {
+			--$i;
+			$bid = $st->bids[$i];
+			if ($bid=='P' || $bid=='D' || $bid=='R') ++$n;
+			else break;
+		}
 	}
-	if ($n>=3) {
+	if ($n==$l) {
+		resetState($st);
+	}
+	else if ($n>=3) {
 		$st->contract=$st->bids[sizeof($st->bids)-$n-1];
 		$suit = substr($st->contract,-1);
 		for ($i=0; $i+$n<sizeof($st->bids); ++$i) {
@@ -386,6 +429,11 @@ function api_setbid($a){
 			echo json_encode(array("error"=>"not your turn, waiting for ".$state->player));
 			return;
 		}
+
+		if (!checkBidAllowed($state,$bid)) {
+			echo json_encode(array("error"=>"bid not allowed"));
+			return;
+		}
 		
 		$k = seatPlayer($state,$u);
 		$state->$k->face = $bid;
@@ -421,7 +469,7 @@ function api_put($a) {
 	if ($row=$r->fetch()) {
 		$state=json_decode($row["state"]);
 		if ($state->phase != "game") {
-			echo json_encode(array("error"=>"no pus in phase".$state->phase));
+			echo json_encode(array("error"=>"no put in phase".$state->phase));
 			return;
 		}
 		if ($state->player != $u) {
@@ -433,8 +481,10 @@ function api_put($a) {
 		foreach ($seat as $k) {
 			if ($state->$k->name==$u) {
 				$state->$k->hand = array_values(array_diff($state->$k->hand,array($c)));
+				$state->$k->face = $c;
 			}
 		}
+		$state->player=nextPlayer($state,$state->player);
 		$row["state"]=json_encode($state);
 		updateTable($db,$row);
 	}

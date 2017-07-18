@@ -31,7 +31,6 @@ button,input,textarea,select {
 }
 select,button,input[type="button"],input[type="submit"],input[type="reset"] {
 	cursor:pointer;
-	/*background-color:#AAA;*/
 	background-color: #7C7;
 	font-size:12pt;
 }
@@ -67,6 +66,7 @@ fieldset>table>tbody>tr>td{
 .nowrap {white-space:nowrap;}
 .abs {position:absolute;}
 .bold {font-weight:bold;}
+input.disabled {background-color:#888;}
 
 .loading {
 	z-index:100;

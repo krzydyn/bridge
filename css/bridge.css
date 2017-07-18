@@ -7,6 +7,9 @@
 	display:inline-block;
 	margin-bottom:2px;
 }
+.active {
+	background-color:#955;
+}
 table.table>tbody>tr>td {
 	text-align:center;
 	vertical-align:middle;
