@@ -8,6 +8,7 @@ class Player {
 	var $name="";
 	var $hand=array();
 	var $face="";
+	var $tricks=0;
 }
 class State {
 	function __construct() {
@@ -21,6 +22,7 @@ class State {
 	var $player="";    //current player
 	var $bids=array(); //list of bids
 	var $contract;     //final contract
+	var $contractor;   //player for contract
 	var $west;
 	var $north;
 	var $east;
@@ -38,9 +40,11 @@ function resetState($state) {
 	foreach ($seat as $k) {
 		$state->$k->hand=array();
 		$state->$k->face="";
+		$state->$k->tricks=0;
 	}
-	$state->phase="deal";
 	$state->dealer="";
+	$state->contract="";
+	$state->contractor="";
 	$state->player="";
 	$state->bids=array();
 }
@@ -203,6 +207,7 @@ function api_getinfo($a) {
 			if (!is_array($state->$k->hand))
 				$state->$k->hand=array();
 		}
+		if (property_exists($state,"wisted")) unset($state->wisted);
 	}
 	echo json_encode(array("state"=>$state));
 }
@@ -232,6 +237,7 @@ function api_reset($a) {
 	else {
 		$state = json_decode($row["state"]);
 		resetState($state);
+		$state->phase="deal";
 		$row["state"]=json_encode($state);
 		if (updateTable($db,$row)===false) {
 			echo json_encode(array("error"=>$db->errmsg()));
@@ -263,6 +269,14 @@ function shuffleCards() {
 	return $cards;
 }
 
+function seatNext($k,$n) {
+	global $seat;
+	$l = sizeof($seat);
+	for ($i=0; $i < $l; ++$i) {
+		if ($seat[$i] == $k) return $seat[($i+$n)%$l];
+	}
+	return false;
+}
 function seatPlayer($st, $n) {
 	global $seat;
 	foreach ($seat as $k) {
@@ -367,30 +381,40 @@ function checkBidAllowed($st,$b) {
 	}
 	return cmpbid($bid,$b) < 0;
 }
-function checkEndAuction($st) {
+function checkAuctionEnd($st) {
 	global $seat;
 	if ($st->phase != "auction") return ;
-	$n=0;
 	$l = sizeof($st->bids);
+	$n=0;
 	if ($l >= 4) {
 		for ($i=sizeof($st->bids); $i>0; ) {
 			--$i;
 			$bid = $st->bids[$i];
-			if ($bid=='P' || $bid=='D' || $bid=='R') ++$n;
+			if ($bid=='P') ++$n;
 			else break;
 		}
 	}
-	if ($n==$l) {
+	if ($n==4) {
+		// 4 x pass = restart game
 		resetState($st);
+		$st->phase="deal";
 	}
-	else if ($n>=3) {
+	else if ($n==3) {
+		//find last valued bid
+		while ($bid=='D' || $bid=='R') {
+			--$i; ++$n;
+			$bid = $st->bids[$i];
+		}
 		$st->contract=$st->bids[sizeof($st->bids)-$n-1];
+		//player is the first biding contract suit in winning pair
 		$suit = substr($st->contract,-1);
-		for ($i=0; $i+$n<sizeof($st->bids); ++$i) {
+		for ($i=$i%2; $i+$n<sizeof($st->bids); $i += 2) {
 			if (substr($st->bids[$i],-1) == $suit) {
-				$st->player=nextPlayer($st,$st->dealer,$i+1);
+				$st->contractor=nextPlayer($st,$st->dealer,$i);
+				break;
 			}
 		}
+		$st->player=nextPlayer($st,$st->contractor);
 		$st->west->face="";
 		$st->north->face="";
 		$st->east->face="";
@@ -438,7 +462,7 @@ function api_setbid($a){
 		$k = seatPlayer($state,$u);
 		$state->$k->face = $bid;
 		$state->bids[] = $bid;
-		checkEndAuction($state);
+		checkAuctionEnd($state);
 
 		$row["state"]=json_encode($state);
 		updateTable($db,$row);
@@ -446,7 +470,42 @@ function api_setbid($a){
 	$db->close();
 	api_getinfo($a);
 }
-
+function beatCard($c1,$c2,$trs) {
+	global $cardFig;
+	$s1 = substr($c1,-1);
+	$s2 = substr($c2,-1);
+	if ($s1 == $trs && $s2 != $trs) return false;
+	if ($s2 == $trs && $s1 != $trs) return true;
+	if ($s1 != $s2) return false;
+	$f1 = substr($c1,0,-1);
+	$f2 = substr($c2,0,-1);
+	return array_search($f1,$cardFig) > array_search($f2,$cardFig);
+}
+function checkTrickEnd($state) {
+	global $seat;
+	$np=nextPlayer($state,$state->player);
+	$k = seatPlayer($state,$np);
+	if ($state->$k->face) {
+		// trick end, find the winner
+		$trs = substr($state->contract,-1);
+		$c = $state->$k->face;
+		$win = $k;
+		foreach ($seat as $k) {
+			if ($k == $win) continue;
+			if (beatCard($c,$state->$k->face,$trs)) {
+				$c = $state->$k->face;
+				$win = $k;
+			}
+		}
+		//clear faces (start new trick)
+		foreach ($seat as $k) $state->$k->face="";
+		$np = $state->$win->name;
+		$state->$win->tricks += 1;
+		//if (sizeof($state->$win->hand) == 0)
+		//	$state->phase="gameovr";
+	}
+	$state->player = $np;
+}
 function api_put($a) {
 	global $seat;
 	$db=null;
@@ -484,7 +543,7 @@ function api_put($a) {
 				$state->$k->face = $c;
 			}
 		}
-		$state->player=nextPlayer($state,$state->player);
+		checkTrickEnd($state);
 		$row["state"]=json_encode($state);
 		updateTable($db,$row);
 	}

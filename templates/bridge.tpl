@@ -14,11 +14,11 @@
 <body>
 <table class="pack"><tr><td>
 <div id="status"></div>
+<div id="error"></div>
 </td><td>
 <div id="loading" class="loading"><img src="<%val("cfg.rooturl")%>icony/loading_small.gif"></div>
 </td></tr></table><br>
-<div class="pack left" id="content"></div>
-<div id="error"></div>
+<div class="pack" id="content"></div>
 
 <script>
 window.addEventListener("load", showState);
@@ -46,22 +46,6 @@ function calcState(st) {
 		st.cards=n;
 	}
 	else st.phase='';
-}
-function transState(st) {
-	if (st.phase == 'wait') {
-		if (st.players==4) st.phase='deal';
-	}
-	if (st.phase == 'deal') {
-		if (st.cards > 0) st.phase='auction';
-	}
-	if (st.phase == 'auction') {
-		//st.phase='game';
-		if (st.cards==0) st.phase='deal';
-	}
-	if (st.phase == 'game') {
-		if (st.cards == 0) st.phase='deal';
-	}
-	if (st.players<4) st.phase='wait';
 }
 function saveState(st) {
 	calcState(st);
@@ -127,7 +111,6 @@ function onGetInfoReady(rc,tx) {
 			st.phase=st.info.phase;
 		}
 		calcState(st);
-		transState(st);
 	}
 	catch(e) {
 		log(e);
@@ -144,7 +127,10 @@ function makePlayer(st,pd) {
 	p.name=pd.name;
 	p.phase=st.phase;
 	p.face=pd.face;
+	p.tricks=pd.tricks;
+	p.user = (pd.name == st.user) ? 1 : 0;
 	p.current = (pd.name == st.info.player) ? 1 : 0;
+	p.contractor = (pd.name == st.info.contractor) ? 1 : 0;
 	for (var fc of pd.hand) {
 		var fig = fc.substring(0,fc.length-1);
 		var suit = fc.substring(fc.length-1,fc.length);
@@ -165,17 +151,16 @@ function faceView(f) {
 	else {
 		var fig = f.substring(0,f.length-1);
 		var suit = f.substring(f.length-1,f.length);
-		if (suit=='N') s+=fig+' NT';
-		else s+=fig+' <img width="15" src="'+rooturl+'res/'+suit+'.gif">';
+		s+=Bridge.card(fig,suit);
 	}
 	s += '</div>';
 	return s;
 }
 function boardView(st) {
 	var s='<table class="board">';
-	s += '<tr><td> </td><td class="north"> N'+faceView(st.north.face)+' </td><td> </td></tr>';
-	s += '<tr><td class="west"> W'+faceView(st.west.face)+' </td><td> </td><td class="east"> E'+faceView(st.east.face)+' </td></tr>';
-	s += '<tr><td> </td><td class="south"> S'+faceView(st.south.face)+' </td><td> </td></tr>';
+	s += '<tr><td colspan="3" class="north">N '+faceView(st.north.face)+'</td></tr>';
+	s += '<tr><td class="west">W'+faceView(st.west.face)+'</td><td></td><td class="east">E'+faceView(st.east.face)+'</td></tr>';
+	s += '<tr><td colspan="3" class="south">S '+faceView(st.south.face)+'</td></tr>';
 	return s+'</table>';
 }
 function ddlist(obj) {
@@ -207,14 +192,12 @@ function showTable(st) {
 	if (st.players < 4)
 		s += '<input type="button" value="AI+" onclick="joinAI()">'
 
-	if (st.cards>0)
+	if (st.phase!='deal')
 		s += '<input type="button" value="reset" onclick="resetTable()">'
 	s += '<input type="button" value="exit" onclick="exitTable()">'
 
 	if (st.phase=='wait') {
 		s += ' <span>waiting for players</span>';
-	}
-	else if (st.phase=='game') {
 	}
 	s += '</div>';
 
@@ -222,8 +205,19 @@ function showTable(st) {
 	var p2=makePlayer(st,st.info.north);
 	var p3=makePlayer(st,st.info.east);
 	var p4=makePlayer(st,st.info.south);
+	p1.partner=p3; p3.partner=p1;
+	p2.partner=p4; p4.partner=p2;
+	p1.r=p4; p2.r=p1; p3.r=p2; p4.r=p1;
+
 	s += '<table class="table">';
-	s += '<tr><td></td><td>'+p2.view()+'</td><td></td></tr>';
+	s += '<tr><td class="top">';
+	if (st.phase=='game') {
+		s += '<div>'
+		s += '<b>Contract:</b> '+Bridge.cardx(st.info.contract)+'<br>';
+		s += '<b>For:</b> '+st.info.contractor+'<br>';
+		s += '<b>Playing:</b> '+st.info.player+'<br>';
+	}
+	s += '</td><td>'+p2.view()+'</td><td></td></tr>';
 	s += '<tr><td>'+p1.view()+'</td>';
 	s += '<td class="board">'+boardView(st.info)+'</td>';
 	s += '<td class>'+p3.view()+'</td></tr>';

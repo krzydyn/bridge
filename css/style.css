@@ -1,7 +1,6 @@
 * {
 	font-size:inherit;
 	font-family:inherit;
-	text-align:inherit;
 }
 @media screen and (max-width:481px){}
 
@@ -16,7 +15,8 @@ h1{font-size:16pt;text-align:center;}
 h2{font-size:14pt;text-align:center;}
 h3{font-size:10pt;text-align:center;}
 h4{font-size:8pt;text-align:center;}
-img {margin:0;padding:0;border:0;vertical-align:middle;}
+img {margin:0;padding:0;border:0;vertical-align:text-bottom;}
+div {text-align:left};
 p {text-align:left; margin:2px;}
 a,a:visited,a:focus {text-decoration:none;color:#00C;}
 a:hover {text-decoration:none;color:#3FA;background-color:#777;}
@@ -36,7 +36,7 @@ select,button,input[type="button"],input[type="submit"],input[type="reset"] {
 }
 
 table {margin:0;padding:0;border:none;empty-cells:show;}
-td,th {vertical-align:text-top;margin:0;padding:0;border:0;}
+td,th {vertical-align:middle;text-align:center;margin:0;padding:0;border:0;}
 tr.sp>td {background-color:white;padding:2px;}
 
 fieldset{
@@ -55,16 +55,20 @@ fieldset>table>tbody>tr>td{
 	padding:2px 5px;
 }
 
+.b1{border:1px solid black;}
 .content {text-align:center;}
 .nodisp {display:none;}
 .pack {display:inline-block;}
-.border-in{border:2px solid lightgrey;border-radius:3px;}
-.b1{border:1px solid black;}
+.abs {position:absolute;}
+
 .left {text-align:left;}
 .center {text-align:center;}
 .right {text-align:right;}
+.top {vertical-align:top;}
+.mid {vertical-align:middle;}
+.bot {vertical-align:bottom;}
+
 .nowrap {white-space:nowrap;}
-.abs {position:absolute;}
 .bold {font-weight:bold;}
 input.disabled {background-color:#888;}
 
@@ -121,8 +125,8 @@ input.disabled {background-color:#888;}
 	position:absolute;
 	display:none;
 	margin-top:1px;
+	margin-right:10px;/* place for scrollbar */
 	padding-top:1px;
-	padding-right:10px;
 	border:1px solid gray;
 	background-color:#999;
 	border-radius:5px;

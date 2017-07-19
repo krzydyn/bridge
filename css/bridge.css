@@ -1,3 +1,5 @@
+/* fine align image with font */
+img {margin: 0 0 1px 0;}
 .name {
 	font-weight:bold;
 	border:1px solid gray;
@@ -8,11 +10,9 @@
 	margin-bottom:2px;
 }
 .active {
-	background-color:#955;
+	border:3px solid #EEE;
 }
 table.table>tbody>tr>td {
-	text-align:center;
-	vertical-align:middle;
 	padding: 3px;
 }
 td.board {
@@ -58,4 +58,16 @@ td.south {
 	border-radius:4px;
 	font-size:12pt;
 	font-weight:normal;
+}
+table.player td {
+	text-align:left;
+}
+table.player input {
+	text-align:center;
+	width:22px;
+	padding-left:0px;
+	padding-bottom:0;
+}
+div.bids ul {
+	padding:0 2px;
 }
