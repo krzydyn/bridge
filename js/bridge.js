@@ -41,7 +41,7 @@ var Player = function() {
 
 	function addlink(f,c) {
 		if (that.phase=='game') {
-			if (that.current)
+			if (that.user || (that.partner.user && that.partner.contractor))
 				return '<input type="button" value="'+f+'" onclick="putCard(\''+that.name+'\',\''+c+'\')">';
 			return '<input class="disabled" type="button" value="'+f+'">';
 		}
@@ -59,6 +59,7 @@ var Player = function() {
 			else if (f == 'Q' && l>2) p+=2;
 			else if (f == 'J' && l>3) p+=1;
 		}
+		if (l <= 1) p+=1; //single or void
 		return p;
 	}
 	function points() {
@@ -88,10 +89,18 @@ var Player = function() {
 		if (that.tricks>0) s += ' '+that.tricks;
 		if (that.cards==0) return s;
 
-		if (that.user || that.current || (that.partner.contractor && that.r.cards<13) || (that.contractor && that.partner.current)) {
-			if (that.phase=='auction') s+=' p'+points()+'<br>';
+		if (that.phase=='auction') {
+			if (that.user) s+=' p'+points()+'<br>';
+			else return s;
 		}
-		else return s+'<br>Cards: '+that.cards;
+		else if (that.phase=='game') {
+			//if (that.user || that.current || (that.partner.contractor && that.r.cards<13) || (that.contractor && that.partner.current)) {
+			if (that.user || (that.partner.contractor && that.r.cards<13)) {
+			}
+			else return s+'<br>Cards: '+that.cards;
+		}
+		else return s;
+
 		s += '<table class="player"><tr><td>';
 		s += Bridge.card('','s')+'</td><td>';
 		for (var f of spades) s+=addlink(f,f+'s');
@@ -114,7 +123,7 @@ Bridge.PHASE = ['Join','Wait','Deal','Auction','Game'];
 Bridge.card = function (fig,suit) {
 	//if (!isEmpty(fig)) fig+=' ';
 	if (suit == 'N') return fig+'NT';
-	return fig+'<img width="15px" src="'+rooturl+'res/'+suit+'.gif">'
+	return fig+'<img width="14px" src="'+rooturl+'res/'+suit+'.gif">'
 }
 Bridge.cardx = function (s) {
 	var fig = s.substring(0,s.length-1);

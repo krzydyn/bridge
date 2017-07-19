@@ -1,5 +1,5 @@
 /* fine align image with font */
-img {margin: 0 0 1px 0;}
+img {margin: 3px 1px;}
 .name {
 	font-weight:bold;
 	border:1px solid gray;
