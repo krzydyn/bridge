@@ -51,8 +51,11 @@ function api_join($a) {
 			}
 		}
 		$n=0;
+		$c=0;
 		foreach ($seat as $k) {
 			if ($state->$k->name) ++$n;
+			if (!is_array($state->$k->hand))
+				$c += sizeof($state->$k->hand);
 		}
 		if ($n < 4) $state->phase="wait";
 		else if (!$state->dealer) {
@@ -61,7 +64,8 @@ function api_join($a) {
 				$state->$k->hand=array();
 		}
 		else if (!$state->contract) $state->phase="auction";
-		else $state->phase="game";
+		else if ($c > 0) $state->phase="game";
+		else $state->phase="gameovr";
 
 		$row["state"]=json_encode($state);
 		if (saveRow($db,$row)===false) {
@@ -235,7 +239,7 @@ function api_deal($a) {
 		}
 		for ($i=0; $i<sizeof($cards); ) {
 			foreach ($seat as $k) {
-				$state->$k->hand[]=$cards[$i]->fig.$cards[$i]->col;
+				$state->$k->hand[]=$cards[$i]->fig.$cards[$i]->suit;
 				++$i;
 			}
 		}

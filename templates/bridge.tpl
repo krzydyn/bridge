@@ -25,12 +25,6 @@ window.addEventListener("load", showState);
 var ajax = new Ajax();
 window.rooturl='<%val("cfg.rooturl")%>';
 
-for (var dd of $('.ddlist')) {dd.addEventListener("focusout",()=>setTimeout(function() {
-	for (obj of dd.childNodes) { //children=elements, childNodes=any node
-		if (d.nodeName.toLowerCase() != 'div') continue;
-		obj.style.display='none';
-	}
-},500));}
 
 function calcState(st) {
 	if (st.info) {
@@ -124,7 +118,9 @@ function onGetInfoReady(rc,tx,tag) {
 	if (!st.phase) showJoin(st);
 	else showTable(st);
 
-	if (tag=='gi') setTimeout(showState,3000);
+	var current = false;
+	if (st.info && st.user==st.info.player) current = true;
+	if (tag=='gi' && !st.error) setTimeout(showState,3000);
 }
 function makePlayer(st,pd) {
 	var p = new Player();
@@ -168,6 +164,12 @@ function boardView(st) {
 	return s+'</table>';
 }
 function ddlist(obj) {
+	obj.addEventListener("focusout",()=>setTimeout(function() {
+		for (var d=obj.nextSibling; d; d=d.nextSibling) {
+			if (d.nodeName.toLowerCase() != 'div') continue;
+			d.style.display='none';
+		}
+	},500));
 	for (var d=obj.nextSibling; d; d=d.nextSibling) {
 		if (d.nodeName.toLowerCase() != 'div') continue;
 		if (d.style.display == 'inline') d.style.display = 'none';
@@ -181,20 +183,13 @@ function showTable(st) {
 
 	var s='<div>';
 
-	if (st.phase=='auction') {
-		s += '<div class="ddlist">'
-		s += '<input type="button" value="bid" onclick="ddlist(this)"><br>';
-		s += '<div class="bids">';
-		s += Bridge.bids();
-		s += '</div></div>';
-	}
-	else if (st.phase=='deal') {
+	if (st.phase=='deal') {
         s += ' <input type="button" value="deal" onclick="dealCards()">';
     }
-	if (st.players > 0)
-		s += '<input type="button" value="AI-" onclick="removeAI()">'
-	if (st.players < 4)
-		s += '<input type="button" value="AI+" onclick="joinAI()">'
+	if (st.phase=='wait' || st.pahse=='deal') {
+		if (st.players > 0) s += '<input type="button" value="AI-" onclick="removeAI()">'
+		if (st.players < 4) s += '<input type="button" value="AI+" onclick="joinAI()">'
+	}
 
 	if (st.phase!='deal')
 		s += '<input type="button" value="reset" onclick="resetTable()">'
@@ -213,7 +208,19 @@ function showTable(st) {
 
 	s += '<table class="table">';
 	s += '<tr><td class="top left">';
-	if (st.phase=='game') {
+	if (st.phase=='auction') {
+		if (st.user == st.info.player) {
+			s += '<div class="ddlist">'
+			s += '<input type="button" value="bid" onclick="ddlist(this)"><br>';
+			s += '<div class="bids">';
+			s += Bridge.bids();
+			s += '</div></div>';
+		}
+		else {
+			s += '<input class="disabled" type="button" value="bid">'
+		}
+	}
+	else if (st.phase=='game') {
 		s += '<b>Contract:</b> '+Bridge.cardx(st.info.contract)+'<br>';
 		s += '<b>For:</b> '+st.info.contractor+'<br>';
 		s += '<b>Playing:</b> '+st.info.player+'<br>';
@@ -226,9 +233,12 @@ function showTable(st) {
 			if (plr[i].contractor) tricks=plr[i].tricks+plr[i].partner.tricks;
 		}
 		tricks=Bridge.isWinner(st.info.contract, tricks);
-		if (tricks == 0) s += '<b>You WIN!</b><br>';
-		else if (tricks > 0) s += '<b>You WIN! (+'+tricks+')</b><br>';
-		else s += '<b>You LOST! (-'+tricks+')</b><br>';
+		if (tricks<0) s += '<div class="looser">';
+		else s += '<div class="winner">';
+		if (tricks == 0) s += ' WIN!';
+		else if (tricks > 0) s += ' WIN! (+'+tricks+')';
+		else s += ' LOST! ('+tricks+')';
+		s += '</div>';
 	}
 	s += '</td><td>'+plr[1].view()+'</td><td></td></tr>';
 	s += '<tr><td>'+plr[0].view()+'</td>';

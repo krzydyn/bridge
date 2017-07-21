@@ -39,15 +39,6 @@ var Player = function() {
 	this.current = 0;
 	this.cards=0;
 
-	function addlink(f,c) {
-		if (that.phase=='game') {
-			if ((that.user && that.current) ||
-				(that.partner.user && that.partner.contractor && that.current))
-				return '<input type="button" value="'+f+'" onclick="putCard(\''+that.name+'\',\''+c+'\')">';
-			return '<input class="disabled" type="button" value="'+f+'">';
-		}
-		return ' '+f;
-	}
 	function cmp(a,b) {
 		return cardFig.indexOf(a)-cardFig.indexOf(b);
 	}
@@ -84,6 +75,17 @@ var Player = function() {
 		that.cards=spades.length+hearts.length+diamonds.length+clubs.length;
 	}
 
+	function addlink(f,c) {
+		if (that.phase=='game') {
+			if (that.current && (that.user
+				 || (that.partner.user && that.partner.contractor) 
+				 || (that.partner.user && that.contractor))
+				)
+				return '<input type="button" value="'+f+'" onclick="putCard(\''+that.name+'\',\''+c+'\')">';
+			return '<input class="disabled" type="button" value="'+f+'">';
+		}
+		return ' '+f;
+	}
 	this.view = function() {
 		var cur = that.current ? "active" : "";
 		var s='<span class="name '+cur+'">'+that.name+'</span>';
@@ -95,8 +97,7 @@ var Player = function() {
 			else return s;
 		}
 		else if (that.phase=='game') {
-			//if (that.user || that.current || (that.partner.contractor && that.r.cards<13) || (that.contractor && that.partner.current)) {
-			if (that.user || (that.partner.contractor && that.r.cards<13)) {
+			if (that.user || (that.partner.contractor && that.r.cards<13) || (that.partner.user && that.contractor)) {
 			}
 			else return s+'<br>Cards: '+that.cards;
 		}
@@ -152,6 +153,5 @@ Bridge.bids = function() {
 }
 Bridge.isWinner = function(contract, tricks) {
 	var fig = parseInt(contract.substring(0,contract.length-1));
-	log('has='+tricks+'  need='+(fig+6));
 	return tricks - (fig+6);
 }
