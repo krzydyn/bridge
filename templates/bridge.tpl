@@ -24,12 +24,14 @@
 window.addEventListener("load", showState);
 var ajax = new Ajax();
 window.rooturl='<%val("cfg.rooturl")%>';
-/*
-var lists=$('.ddlist');
-lists.addEventListener("focusout",()=>setTimeout(function() {
-    $('.')[0].style.display='none';
-},500));
-*/
+
+for (var dd of $('.ddlist')) {dd.addEventListener("focusout",()=>setTimeout(function() {
+	for (obj of dd.childNodes) { //children=elements, childNodes=any node
+		if (d.nodeName.toLowerCase() != 'div') continue;
+		obj.style.display='none';
+	}
+},500));}
+
 function calcState(st) {
 	if (st.info) {
 		var n=0;
@@ -93,7 +95,7 @@ function onExitReady(rc,tx) {
 	saveState(st);
 	showJoin(st);
 }
-function onGetInfoReady(rc,tx) {
+function onGetInfoReady(rc,tx,tag) {
 	if (rc!=200) {
 		$('error').innerHTML = 'error '+rc;
 		return ;
@@ -121,6 +123,8 @@ function onGetInfoReady(rc,tx) {
 	else $('error').innerHTML='';
 	if (!st.phase) showJoin(st);
 	else showTable(st);
+
+	if (tag=='gi') setTimeout(showState,3000);
 }
 function makePlayer(st,pd) {
 	var p = new Player();
@@ -233,7 +237,7 @@ function putCard(u,c) {
 }
 function getInfo(st) {
 	var u='u='+st.user+'&t='+st.table;
-	ajax.async('get','<%val("cfg.rooturl")%>api/getinfo?'+u,onGetInfoReady);
+	ajax.async('get','<%val("cfg.rooturl")%>api/getinfo?'+u,onGetInfoReady,'gi');
 }
 function setBid(obj) {
 	var bid=obj.getAttribute('bid');

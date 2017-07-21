@@ -41,7 +41,8 @@ var Player = function() {
 
 	function addlink(f,c) {
 		if (that.phase=='game') {
-			if (that.user || (that.partner.user && that.partner.contractor))
+			if ((that.user && that.current) ||
+				(that.partner.user && that.partner.contractor && that.current))
 				return '<input type="button" value="'+f+'" onclick="putCard(\''+that.name+'\',\''+c+'\')">';
 			return '<input class="disabled" type="button" value="'+f+'">';
 		}
