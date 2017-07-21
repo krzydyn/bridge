@@ -150,3 +150,8 @@ Bridge.bids = function() {
 	s += '</ul></td></tr></table>';
 	return s;
 }
+Bridge.isWinner = function(contract, tricks) {
+	var fig = parseInt(contract.substring(0,contract.length-1));
+	log('has='+tricks+'  need='+(fig+6));
+	return tricks - (fig+6);
+}

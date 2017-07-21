@@ -199,12 +199,12 @@ function checkTrickEnd($state) {
 				$win = $k;
 			}
 		}
-		//clear faces (start new trick)
-		foreach ($seat as $k) $state->$k->face="";
 		$np = $state->$win->name;
 		$state->$win->tricks += 1;
-		//if (sizeof($state->$win->hand) == 0)
-		//	$state->phase="gameovr";
+		if (sizeof($state->$win->hand) == 0) {
+			$state->phase="gameovr";
+			$np="";
+		}
 	}
 	$state->player = $np;
 }

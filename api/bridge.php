@@ -326,10 +326,21 @@ function api_put($a) {
 			return;
 		}
 
+		$k = seatPlayer($state,$state->player);
+		if ($state->$k->face) {
+			//clear all faces
+			foreach ($seat as $k) $state->$k->face="";
+		}
 		foreach ($seat as $k) {
 			if ($state->$k->name==$u) {
+				if (!in_array($c,$state->$k->hand)) {
+					logstr("no such card to play ".$c);
+					echo json_encode(array("error"=>"you don't have this card".$state->player));
+					return;
+				}
 				$state->$k->hand = array_values(array_diff($state->$k->hand,array($c)));
 				$state->$k->face = $c;
+				break;
 			}
 		}
 		checkTrickEnd($state);

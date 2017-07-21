@@ -205,30 +205,38 @@ function showTable(st) {
 	}
 	s += '</div>';
 
-	var p1=makePlayer(st,st.info.west);
-	var p2=makePlayer(st,st.info.north);
-	var p3=makePlayer(st,st.info.east);
-	var p4=makePlayer(st,st.info.south);
-	p1.partner=p3; p3.partner=p1;
-	p2.partner=p4; p4.partner=p2;
-	p1.r=p4; p2.r=p1; p3.r=p2; p4.r=p1;
+	var plr = [ makePlayer(st,st.info.west), makePlayer(st,st.info.north), makePlayer(st,st.info.east), makePlayer(st,st.info.south)];
+	for (var i=0; i < plr.length; ++i) {
+		plr[i].partner = plr[(i+2)%plr.length];
+		plr[i].r = plr[(i+3)%plr.length];
+	}
 
 	s += '<table class="table">';
-	s += '<tr><td class="top">';
+	s += '<tr><td class="top left">';
 	if (st.phase=='game') {
-		s += '<div>'
 		s += '<b>Contract:</b> '+Bridge.cardx(st.info.contract)+'<br>';
 		s += '<b>For:</b> '+st.info.contractor+'<br>';
 		s += '<b>Playing:</b> '+st.info.player+'<br>';
 	}
-	s += '</td><td>'+p2.view()+'</td><td></td></tr>';
-	s += '<tr><td>'+p1.view()+'</td>';
+	else if (st.phase=='gameovr') {
+		s += '<b>Contract:</b> '+Bridge.cardx(st.info.contract)+'<br>';
+		s += '<b>For:</b> '+st.info.contractor+'<br>';
+		var tricks=0;
+		for (var i=0; i < plr.length; ++i) {
+			if (plr[i].contractor) tricks=plr[i].tricks+plr[i].partner.tricks;
+		}
+		tricks=Bridge.isWinner(st.info.contract, tricks);
+		if (tricks == 0) s += '<b>You WIN!</b><br>';
+		else if (tricks > 0) s += '<b>You WIN! (+'+tricks+')</b><br>';
+		else s += '<b>You LOST! (-'+tricks+')</b><br>';
+	}
+	s += '</td><td>'+plr[1].view()+'</td><td></td></tr>';
+	s += '<tr><td>'+plr[0].view()+'</td>';
 	s += '<td class="board">'+boardView(st.info)+'</td>';
-	s += '<td class>'+p3.view()+'</td></tr>';
-	s += '<tr><td></td><td>'+p4.view()+'</td><td></td></tr>';
+	s += '<td class>'+plr[2].view()+'</td></tr>';
+	s += '<tr><td></td><td>'+plr[3].view()+'</td><td></td></tr>';
 	s += '</table>';
 	$('content').innerHTML=s;
-
 }
 function putCard(u,c) {
 	var st = readState();
