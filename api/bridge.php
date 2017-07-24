@@ -165,6 +165,15 @@ function api_getinfo($a) {
 		}
 		if (property_exists($state,"wisted")) unset($state->wisted);
 	}
+	$k=seatPlayer($state,$state->player);
+	if ($k && strtoupper(substr($state->$k->name,0,2))=="AI") {
+		if (auto_play($state)) {
+			$row["state"]=json_encode($state);
+			if (saveRow($db,$row)===false) {
+				logstr($db->errmsg());
+			}
+		}
+	}
 	echo json_encode(array("state"=>$state));
 }
 

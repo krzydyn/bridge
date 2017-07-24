@@ -93,7 +93,7 @@ var Player = function() {
 		if (that.cards==0) return s;
 
 		if (that.phase=='auction') {
-			if (that.user) s+=' p'+points()+'<br>';
+			if (that.user || that.name.substring(0,2)=='AI') s+=' p'+points()+'<br>';
 			else return s;
 		}
 		else if (that.phase=='game') {

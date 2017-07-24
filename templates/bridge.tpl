@@ -24,7 +24,7 @@
 window.addEventListener("load", showState);
 var ajax = new Ajax();
 window.rooturl='<%val("cfg.rooturl")%>';
-
+var refr=true;
 
 function calcState(st) {
 	if (st.info) {
@@ -118,8 +118,7 @@ function onGetInfoReady(rc,tx,tag) {
 	if (!st.phase) showJoin(st);
 	else showTable(st);
 
-	var current = false;
-	if (st.info && st.user==st.info.player) current = true;
+	if (!refr) return ;
 	if (tag=='gi' && !st.error) setTimeout(showState,3000);
 }
 function makePlayer(st,pd) {
@@ -168,8 +167,10 @@ function ddlist(obj) {
 		for (var d=obj.nextSibling; d; d=d.nextSibling) {
 			if (d.nodeName.toLowerCase() != 'div') continue;
 			d.style.display='none';
+			refr=true;
 		}
 	},500));
+	refr=false;
 	for (var d=obj.nextSibling; d; d=d.nextSibling) {
 		if (d.nodeName.toLowerCase() != 'div') continue;
 		if (d.style.display == 'inline') d.style.display = 'none';

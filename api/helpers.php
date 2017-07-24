@@ -1,4 +1,6 @@
 <?php
+require_once("api/ai-player.php");
+
 global $seat,$cardFig,$cardSuit;
 $seat=array("west","north","east","south");
 $cardFig = array( 'A','K','Q','J','10','9','8','7','6','5','4','3','2' );
@@ -207,5 +209,27 @@ function checkTrickEnd($state) {
 		}
 	}
 	$state->player = $np;
+}
+
+function auto_play($st) {
+	$k = seatPlayer($st,$st->player);
+	$p = new BridgePlayer($st->$k);
+	if ($st->phase == "auction") {
+		if (sizeof($st->bids) < 2) {
+			$bid = $p->opening_bid();
+		}
+		else {
+			$bid = $st->bids[sizeof($st->bids)-2];
+			$bid = $p->opening_resp($bid);
+		}
+		$st->$k->face = $bid;
+		$st->bids[] = $bid;
+		checkAuctionEnd($st);
+		return true;
+	}
+	if ($st->phase == "game") {
+	}
+	return false;
+
 }
 ?>
