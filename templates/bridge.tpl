@@ -24,7 +24,7 @@
 window.addEventListener("load", showState);
 var ajax = new Ajax();
 window.rooturl='<%val("cfg.rooturl")%>';
-var refr=true;
+var stopRefresh=false;
 
 function calcState(st) {
 	if (st.info) {
@@ -61,9 +61,11 @@ function readState() {
 	return st;
 }
 function showState() {
+	//if (stopRefresh) return ;
 	var st = readState();
 	log('saved state = '+st.phase);
 	if (isEmpty(st.phase)) {
+		stopRefresh=false;
 		showJoin(st);
 	}
 	else {
@@ -117,9 +119,7 @@ function onGetInfoReady(rc,tx,tag) {
 	else $('error').innerHTML='';
 	if (!st.phase) showJoin(st);
 	else showTable(st);
-
-	if (!refr) return ;
-	if (tag=='gi' && !st.error) setTimeout(showState,3000);
+	if (tag=='gi') setTimeout(showState,3000);
 }
 function makePlayer(st,pd) {
 	var p = new Player();
@@ -143,7 +143,7 @@ function makePlayer(st,pd) {
 }
 function faceView(f) {
 	if (!f) return '';
-	var s='<div class="face">';
+	var s='<div class="face bubble">';
 	if (f=='P') s+='pass';
 	else if (f=='D') s+='double';
 	else if (f=='R') s+='redouble';
@@ -162,24 +162,39 @@ function boardView(st) {
 	s += '<tr><td colspan="3" class="south">S '+faceView(st.south.face)+'</td></tr>';
 	return s+'</table>';
 }
+function setBid(obj) {
+	var bid=obj.getAttribute('bid');
+	var st = readState();
+	var user = st.info.player ? st.info.player : s.user;
+	var u='u='+user+'&t='+st.table+'&bid='+bid;
+	ajax.async('get','<%val("cfg.rooturl")%>api/setbid?'+u,onGetInfoReady);
+	stopRefresh=false;
+}
 function ddlist(obj) {
 	obj.addEventListener("focusout",()=>setTimeout(function() {
 		for (var d=obj.nextSibling; d; d=d.nextSibling) {
 			if (d.nodeName.toLowerCase() != 'div') continue;
 			d.style.display='none';
-			refr=true;
 		}
+		stopRefresh=false;
 	},500));
-	refr=false;
+
+	stopRefresh=true;
+	var hidden=false;
 	for (var d=obj.nextSibling; d; d=d.nextSibling) {
 		if (d.nodeName.toLowerCase() != 'div') continue;
-		if (d.style.display == 'inline') d.style.display = 'none';
+		if (d.style.display == 'inline') {
+			d.style.display = 'none';
+			hidden=true;
+		}
 		else {
 			d.style.display = 'inline';
 		}
 	}
+	if (hidden) stopRefresh=false;
 }
 function showTable(st) {
+	if (stopRefresh) return ;
 	$('status').innerHTML = 'Hi '+st.user+', you are at table `'+st.table+'`'+' ['+st.phase+']';
 
 	var s='<div>';
@@ -187,9 +202,9 @@ function showTable(st) {
 	if (st.phase=='deal') {
         s += ' <input type="button" value="deal" onclick="dealCards()">';
     }
-	if (st.phase=='wait' || st.pahse=='deal') {
-		if (st.players > 0) s += '<input type="button" value="AI-" onclick="removeAI()">'
+	if (st.phase=='wait' || st.phase=='deal') {
 		if (st.players < 4) s += '<input type="button" value="AI+" onclick="joinAI()">'
+		if (st.players > 0) s += '<input type="button" value="AI-" onclick="removeAI()">'
 	}
 
 	if (st.phase!='deal')
@@ -258,14 +273,6 @@ function getInfo(st) {
 	var u='u='+st.user+'&t='+st.table;
 	ajax.async('get','<%val("cfg.rooturl")%>api/getinfo?'+u,onGetInfoReady,'gi');
 }
-function setBid(obj) {
-	var bid=obj.getAttribute('bid');
-	var st = readState();
-	//log(st);
-	var user = st.info.player ? st.info.player : s.user;
-	var u='u='+user+'&t='+st.table+'&bid='+bid;
-	ajax.async('get','<%val("cfg.rooturl")%>api/setbid?'+u,onGetInfoReady);
-}
 function joinTable() {
 	var st = readState();
 	if (!isEmpty($('user').value)) st.user = $('user').value;
@@ -296,14 +303,12 @@ function removeAI() {
     ajax.async('get','<%val("cfg.rooturl")%>api/removeai?'+u,onGetInfoReady);
 }
 function dealCards() {
-	log('dealCards');
 	var st = readState();
 	var u='u='+st.user+'&t='+st.table;
     ajax.async('get','<%val("cfg.rooturl")%>api/deal?'+u,onGetInfoReady);
 }
 
 function showJoin(st) {
-	log('showJoin');
 	var s='<table><tr><th colspan="2">Join table to play</td></tr>';
 	s += '<tr><td>Your name: </td>';
 	s += '<td><input id="user" type="text" value="'+st.user+'" size="10" placeholder="your name"></td></tr>';
@@ -311,9 +316,33 @@ function showJoin(st) {
 	s += '<td><input id="table" type="text" value="'+st.table+'" size="10" placeholder="table name"> </td>';
 	s += '<td><input type="button" value="join" onclick="joinTable()"></tr></table>';
 	$('content').innerHTML=s;
-
 	if (st.error) $('error').innerHTML=st.error;
 	else $('error').innerHTML='';
 }
 </script>
+<!--
+<div>
+<form action="https://www.paypal.com/cgi-bin/webscr" method="post" target="_top">
+<input type="hidden" name="cmd" value="_s-xclick">
+<input type="hidden" name="hosted_button_id" value="5Z3P525EK5RNN">
+<table>
+<tr><td><input type="hidden" name="on0" value="Kwota">Kwota</td></tr><tr><td><select name="os0">
+	<option value="Troszkę">Troszkę 5,00 PLN</option>
+	<option value="Więcej">Więcej 10,00 PLN</option>
+	<option value="Bardzo">Bardzo 50,00 PLN</option>
+</select> </td></tr>
+</table>
+<input type="hidden" name="currency_code" value="PLN">
+<input type="image" src="https://www.paypalobjects.com/pl_PL/PL/i/btn/btn_buynowCC_LG.gif" border="0" name="submit" alt="PayPal – Płać wygodnie i bezpiecznie">
+<img alt="" border="0" src="https://www.paypalobjects.com/pl_PL/i/scr/pixel.gif" width="1" height="1">
+</form>
+<form action="https://www.paypal.com/cgi-bin/webscr" method="post" target="_top">
+<input type="hidden" name="cmd" value="_s-xclick">
+<input type="hidden" name="hosted_button_id" value="NCS3TX8E872HJ">
+<input type="image" src="https://www.paypalobjects.com/pl_PL/PL/i/btn/btn_buynowCC_LG.gif" border="0" name="submit" alt="PayPal – Płać wygodnie i bezpiecznie">
+<img alt="" border="0" src="https://www.paypalobjects.com/pl_PL/i/scr/pixel.gif" width="1" height="1">
+</form>
+
+</div>
+-->
 </body></html>

@@ -152,6 +152,32 @@ ul.horiz>li {
 	display:inline;
 }
 
+.bubble {
+	display: inline-block;
+	border: 2px solid gray;
+	padding: 5px;
+	border-radius: 5px;
+	position: relative;
+	/*box-shadow: 5px 5px 5px rgba(0,0,0,.5);*/
+}
+.bubble:before {
+	content: "";
+	display: block;
+	background-color: inherit;
+	border: 2px solid gray;
+	border-width: 0 2px 2px 0;
+	width: 7px;
+	height: 7px;
+	/*box-shadow: 5px 0 5px rgba(0,0,0,.5);*/
+	position: absolute;
+	bottom: -6px;
+	left: 5px;
+	-webkit-transform: rotate(45deg);
+	-moz-transform: rotate(45deg);
+	-ms-transform: rotate(45deg);
+	-o-transform: rotate(45deg);
+}
+
 .abs-right {position:absolute;right:100px;}
 .abs-right>div {
 	position:relative;

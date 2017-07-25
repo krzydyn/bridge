@@ -210,7 +210,6 @@ function checkTrickEnd($state) {
 	}
 	$state->player = $np;
 }
-
 function auto_play($st) {
 	$k = seatPlayer($st,$st->player);
 	$p = new BridgePlayer($st->$k);
@@ -230,6 +229,24 @@ function auto_play($st) {
 	if ($st->phase == "game") {
 	}
 	return false;
-
+}
+function addGamePoints($state) {
+	global $seat;
+	if ($state->phase != "gameovr") return ;
+	$trics=0;
+	foreach ($seat as $k) {
+		if ($state->$k->name==$state->contractor) $tricks+=$state->$k->tricks;
+	}
+	$n = $trics - substr($state->contract,0,1);
+	$suit=substr($state->contract,1);
+	$points=0;
+	if ($n >= 0) {
+		if ($suit=='c' || $suit=='d') // minor
+			$points += 20*$n;
+		else if ($suit=='h' || $suit=='s') //major
+			$points += 30*$n;
+		else // NT
+			$points += 40+30*($n-1);
+	}
 }
 ?>
