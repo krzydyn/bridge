@@ -165,15 +165,6 @@ function api_getinfo($a) {
 		}
 		if (property_exists($state,"wisted")) unset($state->wisted);
 	}
-	/*$k=seatPlayer($state,$state->player);
-	if ($k && strtoupper(substr($state->$k->name,0,2))=="AI") {
-		if (auto_play($state)) {
-			$row["state"]=json_encode($state);
-			if (saveRow($db,$row)===false) {
-				logstr($db->errmsg());
-			}
-		}
-	}*/
 	echo json_encode(array("state"=>$state));
 }
 
@@ -361,6 +352,37 @@ function api_put($a) {
 		saveRow($db,$row);
 	}
 
+	$db->close();
+	api_getinfo($a);
+}
+function api_autoplay($a) {
+	global $seat;
+	$db=null;
+	try {
+		$db = DB::connectDefault();
+	}
+	catch(Exception $e) {
+		echo json_encode(array("error"=>get_class($e).": ".$e->getMessage()));
+		return ;
+	}
+	$u=$a["u"];
+	$t=$a["t"];
+
+	$r=$db->query("select name,state from tables where name=?",array("1"=>$t));
+	if ($r===false) {
+		echo json_encode(array("error"=>$db->errmsg()));
+		return;
+	}
+	if ($row=$r->fetch()) {
+		$state=json_decode($row["state"]);
+		$k=seatPlayer($state,$state->player);
+		if ($k) {
+			if (auto_play($state)) {
+				$row["state"]=json_encode($state);
+				saveRow($db,$row);
+			}
+		}
+	}
 	$db->close();
 	api_getinfo($a);
 }

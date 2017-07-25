@@ -211,22 +211,26 @@ function checkTrickEnd($state) {
 	$state->player = $np;
 }
 function auto_play($st) {
+	logstr("autoplay[ph=auction,p=".$st->player."]");
 	$k = seatPlayer($st,$st->player);
 	$p = new BridgePlayer($st->$k);
 	if ($st->phase == "auction") {
 		if (sizeof($st->bids) < 2) {
+			logstr("opening bid");
 			$bid = $p->opening_bid();
 		}
 		else {
 			$bid = $st->bids[sizeof($st->bids)-2];
+			logstr("response bid to ".$bid);
 			$bid = $p->opening_resp($bid);
 		}
+		logstr("autoplay[ph=auction,p=".$st->player."] bid=".$bid);
 		$st->$k->face = $bid;
 		$st->bids[] = $bid;
 		checkAuctionEnd($st);
 		return true;
 	}
-	if ($st->phase == "game") {
+	else if ($st->phase == "game") {
 	}
 	return false;
 }

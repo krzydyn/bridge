@@ -77,7 +77,6 @@ $r->addRoute("","",function() {
 $r->route(Request::getInstance()->getval("method"), Request::getInstance()->getval("uri"));
 
 function initdb() {
-	logstr("initdb");
 	$db = DB::connectDefault();
 
 	$reqtabs=array(

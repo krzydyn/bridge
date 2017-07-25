@@ -31,6 +31,7 @@ class BridgePlayer {
 		return $p;
 	}
 	function longestSuit() {
+		global $cardSuit;
 		$len=0; $suit="";
 		foreach ($cardSuit as $s) {
 			$l = sizeof($this->hand[$s]);
@@ -41,17 +42,18 @@ class BridgePlayer {
 
 	// points in one suit is 10
 	function opening_bid() {
-		$p=$this->points;
-		if ($p < 13) return "P"; // pass
+		logstr("points ".$this->points);
+		if ($this->points < 13) return "P"; // pass
 		$s = $this->longestSuit();
 		$l = sizeof($this->hand[$s]);
 
+		logstr("longestSuit = ".$s.", len=".$l);
 		// 13-21 level 1
-		if ($p < 15) {
+		if ($this->points < 15) {
 			if ($l < 5) return "1c";
 			return "1".$s;
 		}
-		if ($p < 22) {
+		if ($this->points < 22) {
 			if ($l < 5) return "1N";
 			return "1".$s;
 		}
@@ -61,7 +63,10 @@ class BridgePlayer {
 		return "2".$s;
 	}
 	function opening_resp($bid) {
-		if ($bid=="P" || $bid=="D" || $bid=="R") return "P";
+		if ($bid=="D" || $bid=="R") return "P";
+		if ($bid=="P") return "P";
+
+		logstr("points ".$this->points);
 		if ($this->points < 6) return "P";
 		$s = substr($bid,-1);
 		$f = substr($bid,0,-1);
@@ -82,6 +87,11 @@ class BridgePlayer {
 		}
 
 		//find new suit
+		$s = $this->longestSuit();
+		$l = sizeof($this->hand[$s]);
+		if ($l >= 5) {
+			return ($f+1).$s;
+		}
 		return "P";
 	}
 }

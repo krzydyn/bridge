@@ -119,7 +119,7 @@ function onGetInfoReady(rc,tx,tag) {
 	else $('error').innerHTML='';
 	if (!st.phase) showJoin(st);
 	else showTable(st);
-	if (tag=='gi') setTimeout(showState,3000);
+	//if (tag=='gi' && !st.error) setTimeout(showState,5000);
 }
 function makePlayer(st,pd) {
 	var p = new Player();
@@ -177,7 +177,7 @@ function ddlist(obj) {
 			d.style.display='none';
 		}
 		stopRefresh=false;
-	},500));
+	},550));
 
 	stopRefresh=true;
 	var hidden=false;
@@ -213,6 +213,9 @@ function showTable(st) {
 
 	if (st.phase=='wait') {
 		s += ' <span>waiting for players</span>';
+	}
+	if (st.phase=='auction' || st.phase=='game') {
+		s += '<input type="button" value="auto" onclick="autoplay()">'
 	}
 	s += '</div>';
 
@@ -318,6 +321,11 @@ function showJoin(st) {
 	$('content').innerHTML=s;
 	if (st.error) $('error').innerHTML=st.error;
 	else $('error').innerHTML='';
+}
+function autoplay() {
+	var st = readState();
+	var u='u='+st.user+'&t='+st.table;
+    ajax.async('get','<%val("cfg.rooturl")%>api/autoplay?'+u,onGetInfoReady);
 }
 </script>
 <!--
