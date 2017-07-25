@@ -283,7 +283,7 @@ function api_setbid($a){
 			return;
 		}
 
-		if (!checkBidAllowed($state,$bid)) {
+		if (!checkBidAllowed($state->bids,$bid)) {
 			echo json_encode(array("error"=>"bid not allowed"));
 			return;
 		}

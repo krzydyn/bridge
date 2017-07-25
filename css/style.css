@@ -153,6 +153,7 @@ ul.horiz>li {
 }
 
 .bubble {
+	z-index:1;
 	display: inline-block;
 	border: 2px solid gray;
 	padding: 5px;
@@ -161,6 +162,7 @@ ul.horiz>li {
 	/*box-shadow: 5px 5px 5px rgba(0,0,0,.5);*/
 }
 .bubble:before {
+	z-index:-1;
 	content: "";
 	display: block;
 	background-color: inherit;

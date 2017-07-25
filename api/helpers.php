@@ -61,10 +61,11 @@ function shuffleCards() {
         foreach ($cardSuit as $col)
             $cards[] = new Card($fig,$col);
     }
-	for ($i = sizeof($cards); $i>0; --$i) {
+	for ($i = sizeof($cards); $i>0; ) {
+		--$i;
         $j = rand(0,$i);
-        $x = $cards[$i - 1];
-        $cards[$i - 1] = $cards[$j];
+        $x = $cards[$i];
+        $cards[$i] = $cards[$j];
         $cards[$j] = $x;
     }
 	return $cards;
@@ -107,14 +108,14 @@ function cmpbid($b1,$b2) {
 	$f2=substr($b2,1);
 	return array_search($f1,$suit) - array_search($f2,$suit);
 }
-function checkBidAllowed($st,$b) {
+function checkBidAllowed($bids,$b) {
 	if ($b=='P') return true;
-	$l=sizeof($st->bids);
+	$l=sizeof($bids);
 	if ($l==0) {
 		if ($b=='D' || $b=='R') return false;
 		return true;
 	}
-	$bid=$st->bids[$l-1];
+	$bid=$bids[$l-1];
 	if ($b=='D') {
 		if ($bid=='P' || $bid=='D' || $bid=='R') return false;
 		return true;
@@ -124,9 +125,9 @@ function checkBidAllowed($st,$b) {
 		return false;
 	}
 	//valuable bid
-	for ($i=sizeof($st->bids); $i>0; ) {
+	for ($i=sizeof($bids); $i>0; ) {
 		--$i;
-		$bid = $st->bids[$i];
+		$bid = $bids[$i];
 		if ($bid=='P' || $bid=='D' || $bid=='R') ;
 		else break;
 	}
@@ -211,19 +212,11 @@ function checkTrickEnd($state) {
 	$state->player = $np;
 }
 function auto_play($st) {
-	logstr("autoplay[ph=auction,p=".$st->player."]");
+	logstr("autoplay[ph=".$st->phase.",p=".$st->player."]");
 	$k = seatPlayer($st,$st->player);
 	$p = new BridgePlayer($st->$k);
 	if ($st->phase == "auction") {
-		if (sizeof($st->bids) < 2) {
-			logstr("opening bid");
-			$bid = $p->opening_bid();
-		}
-		else {
-			$bid = $st->bids[sizeof($st->bids)-2];
-			logstr("response bid to ".$bid);
-			$bid = $p->opening_resp($bid);
-		}
+		$bid = $p->calc_auction($st->bids);
 		logstr("autoplay[ph=auction,p=".$st->player."] bid=".$bid);
 		$st->$k->face = $bid;
 		$st->bids[] = $bid;
