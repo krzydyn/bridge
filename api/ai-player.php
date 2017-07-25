@@ -12,7 +12,7 @@ class BridgePlayer {
 			$f = substr($h,0,-1);
 			$this->hand[$s][] = $f;
 		}
-		logstr("player :".print_r($p,true));
+		logstr("player: ".json_encode($p));
 		$p=0;
 		foreach ($cardSuit as $s)
 			$p += $this->pointsfor($this->hand[$s]);
@@ -28,6 +28,7 @@ class BridgePlayer {
 			else if ($f == 'J' && $l>3) $p+=1;
 		}
 		if ($l <= 1) $p+=1; //single or void
+		else if ($l > 6) $p+=1; //long suit
 		return $p;
 	}
 	function longestSuit() {
@@ -35,15 +36,70 @@ class BridgePlayer {
 		$len=0; $suit="";
 		foreach ($cardSuit as $s) {
 			$l = sizeof($this->hand[$s]);
-			if ($len < $l) { $len=$l; $suit=$s;}
+			if ($len <= $l) { $len=$l; $suit=$s;}
+		}
+		return $suit;
+	}
+	function strongestSuit() {
+		global $cardSuit;
+		$points=0; $suit="";
+		foreach ($cardSuit as $s) {
+			$p = $this->pointsfor($this->hand[$s]);
+			if ($points < $p) { $points=$p; $suit=$s;}
 		}
 		return $suit;
 	}
 
-	// points in one suit is 10
-	function opening_bid() {
+	function last_value_bid($bids) {
+		for ($i=sizeof($bids); $i>0; ) {
+			--$i;
+			$b = $bids[$i];
+			if ($b=="P" || $b=="D" || $b=="R") continue;
+			return $b;
+		}
+		return "";
+	}
+	function last_partner_bid($bids) {
+		for ($i=sizeof($bids)-2; $i>0; $i-=2) {
+			$b = $bids[$i];
+			if ($b=="P" || $b=="D" || $b=="R") continue;
+			return $b;
+		}
+		return "";
+	}
+
+	function fixBid($bids,$b) {
+		if ($b=="P") return $b;
+		if (checkBidAllowed($bids,$b)) return $b;
+		logstr("fixing bid ".$b);
+		if ($b=="D" || $b=="R") return "P";
+		$f = substr($b,0,-1);
+		while ($f < 7) {
+			$f = $f+1;
+			$b=$f.substr($b,-1);
+			if (checkBidAllowed($bids,$b)) return $b;
+		}
+		return "P";
+	}
+
+	//most probable suis distribusion in one hand: 4-3-3-3
+	// points in one suit is 10 (AKQJ=4+3+2+1=10)
+	// max in one hand is 37 (4*AKQ+J=4*9+1=37)
+	function calc_auction($bids) {
 		logstr("points ".$this->points);
+		logstr("bids ".implode(",",$bids));
+		//minimum bid
+		$minbid = $this->last_value_bid($bids);
+		if (!$minbid) return $this->opening_bid("");
+		//partner bid
+		$parbid = $this->last_partner_bid($bids);
+		if (!$parbid) $b=$this->opening_bid($minbid);
+		else $b=$this->next_bid($minbid,$parbid,$bids[sizeof($bids)-1]);
+		return $this->fixBid($bids,$b);
+	}
+	function opening_bid($minbid) {
 		if ($this->points < 13) return "P"; // pass
+
 		$s = $this->longestSuit();
 		$l = sizeof($this->hand[$s]);
 
@@ -62,14 +118,12 @@ class BridgePlayer {
 		if ($l < 5) return "2N";
 		return "2".$s;
 	}
-	function opening_resp($bid) {
-		if ($bid=="D" || $bid=="R") return "P";
-		if ($bid=="P") return "P";
+	function next_bid($minbid,$parbid,$bid) {
+		if ($bid=="D") return "R";
 
-		logstr("points ".$this->points);
 		if ($this->points < 6) return "P";
-		$s = substr($bid,-1);
-		$f = substr($bid,0,-1);
+		$s = substr($parbid,-1);
+		$f = substr($parbid,0,-1);
 
 		//8 major suit fit
 		if (sizeof($this->hand[$s]) + 5 >= 8 && ($s=="s" || $s=="h")) {
