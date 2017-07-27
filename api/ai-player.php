@@ -98,7 +98,7 @@ class BridgePlayer {
 		return $this->fixBid($bids,$b);
 	}
 	function opening_bid($minbid) {
-		if ($this->points < 13) return "P"; // pass
+		if ($this->points < 12) return "P"; // pass
 
 		$s = $this->longestSuit();
 		$l = sizeof($this->hand[$s]);
@@ -125,26 +125,35 @@ class BridgePlayer {
 		$s = substr($parbid,-1);
 		$f = substr($parbid,0,-1);
 
-		//8 major suit fit
-		if (sizeof($this->hand[$s]) + 5 >= 8 && ($s=="s" || $s=="h")) {
-			if ($this->points < 11) return ($f+1).$s; //poor
-			if ($this->points < 13) return ($f+2).$s; //medium
-			return ($f+3).$s; //game
-		}
-		// minor support 5
-		else if (sizeof($this->hand[$s]) >= 5 && ($s=="d" || $s=="c")) {
-			if ($this->points < 11) return ($f+1).$s; //poor
-			if ($this->points < 13) return ($f+2).$s; //medium
-			$s = $this->longestSuit();
-			$l = sizeof($this->hand[$s]);
-			if ($l < 5) return ($f+1)."N";
+		if ($s!="N") { 
+			//8 major suit fit
+			if (sizeof($this->hand[$s]) + 5 >= 8 && ($s=="s" || $s=="h")) {
+				if ($f >= 4) return "P"; //game
+				if ($this->points < 11) return $f.$s; //poor
+				if ($this->points < 13) return ($f+1).$s; //medium
+				$f += 2;
+				if ($f > 4) $f=4;
+				return $f.$s; //game
+			}
+			// minor support 5
+			else if (sizeof($this->hand[$s]) >= 5 && ($s=="d" || $s=="c")) {
+				if ($this->points < 11) return $f.$s; //poor
+				if ($this->points < 13) return ($f+1).$s; //medium
+				$s = $this->longestSuit();
+				$l = sizeof($this->hand[$s]);
+				if ($l < 5) return ($f+1)."N";
+			}
 		}
 
 		//find new suit
 		$s = $this->longestSuit();
 		$l = sizeof($this->hand[$s]);
+		logstr("new suit $s len=$l");
 		if ($l >= 5) {
-			return ($f+1).$s;
+			return $f.$s;
+		}
+		if ($this->points > 12 && $f <= 3) {
+			return "3N";
 		}
 		return "P";
 	}
