@@ -54,8 +54,9 @@ var Player = function() {
 		//bonus points
 		if (l < 3) p+=3-l; //void +3, singleton +2, doubleton +1
 		else if (l >= 6) {
-			if (s=="s" || s=="h") p+=1;
-			else if (p >= 5) p+=1;
+			if (l > 7) l=7;
+			if (s=="s" || s=="h") p+=l-5;
+			else if (p >= 5) p+=l-5;
 		}
 		return p;
 	}
