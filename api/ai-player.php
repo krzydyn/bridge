@@ -1,5 +1,12 @@
 <?php
 include_once("api/helpers.php");
+//
+// most probable suis distribusion in one hand: 4-3-3-3, 5-3-3-2, 4-4-3-2
+// points in one suit is 10 (AKQJ=4+3+2+1=10)
+// max in one hand is 37 (4*AKQ+J=4*9+1=37)
+// 635013559600 possible hands newton(52,13)
+// game = 9-11 tricks
+// slam = 12-13 tricks
 class BridgePlayer {
 	var $hand;
 	var $points;
@@ -51,17 +58,16 @@ class BridgePlayer {
 	}
 
 	function last_value_bid($bids) {
-		for ($i=sizeof($bids); $i>0; ) {
-			--$i;
-			$b = $bids[$i];
+		for ($i=sizeof($bids); $i>0; --$i) {
+			$b = $bids[$i-1];
 			if ($b=="P" || $b=="D" || $b=="R") continue;
 			return $b;
 		}
 		return "";
 	}
 	function last_partner_bid($bids) {
-		for ($i=sizeof($bids)-2; $i>0; $i-=2) {
-			$b = $bids[$i];
+		for ($i=sizeof($bids)-1; $i>0; $i-=2) {
+			$b = $bids[$i-1];
 			if ($b=="P" || $b=="D" || $b=="R") continue;
 			return $b;
 		}
@@ -82,23 +88,20 @@ class BridgePlayer {
 		return "P";
 	}
 
-	//most probable suis distribusion in one hand: 4-3-3-3
-	// points in one suit is 10 (AKQJ=4+3+2+1=10)
-	// max in one hand is 37 (4*AKQ+J=4*9+1=37)
 	function calc_auction($bids) {
 		logstr("points ".$this->points);
 		logstr("bids ".implode(",",$bids));
-		//minimum bid
 		$minbid = $this->last_value_bid($bids);
-		if (!$minbid) return $this->opening_bid("");
+		if (!$minbid) return $this->opening_bid();
 		//partner bid
 		$parbid = $this->last_partner_bid($bids);
-		if (!$parbid) $b=$this->opening_bid($minbid);
-		else $b=$this->next_bid($minbid,$parbid,$bids[sizeof($bids)-1]);
+		if (!$parbid) $b=$this->opening_bid();
+		else $b=$this->next_bid($parbid,$bids[sizeof($bids)-1]);
 		return $this->fixBid($bids,$b);
 	}
-	function opening_bid($minbid) {
-		if ($this->points < 13) return "P"; // pass
+	function opening_bid() {
+		logstr("opening bid");
+		if ($this->points < 12) return "P"; // pass
 
 		$s = $this->longestSuit();
 		$l = sizeof($this->hand[$s]);
@@ -118,33 +121,46 @@ class BridgePlayer {
 		if ($l < 5) return "2N";
 		return "2".$s;
 	}
-	function next_bid($minbid,$parbid,$bid) {
-		if ($bid=="D") return "R";
-
+	function next_bid($parbid) {
+		logstr("next bid (partner $parbid)");
 		if ($this->points < 6) return "P";
 		$s = substr($parbid,-1);
 		$f = substr($parbid,0,-1);
 
-		//8 major suit fit
-		if (sizeof($this->hand[$s]) + 5 >= 8 && ($s=="s" || $s=="h")) {
-			if ($this->points < 11) return ($f+1).$s; //poor
-			if ($this->points < 13) return ($f+2).$s; //medium
-			return ($f+3).$s; //game
+		if ($s=="N") { //no trump
+			//fall to longest suit selection
 		}
-		// minor support 5
-		else if (sizeof($this->hand[$s]) >= 5 && ($s=="d" || $s=="c")) {
-			if ($this->points < 11) return ($f+1).$s; //poor
-			if ($this->points < 13) return ($f+2).$s; //medium
-			$s = $this->longestSuit();
-			$l = sizeof($this->hand[$s]);
-			if ($l < 5) return ($f+1)."N";
+		else { 
+			//8 major suit fit
+			logstr("8fit = ".(sizeof($this->hand[$s]) + 4 + $f));
+			if (sizeof($this->hand[$s]) + 4 + $f >= 8 && ($s=="s" || $s=="h")) {
+				if ($f >= 4) return "P"; //(TODO higher bids)
+				if ($this->points < 11) return $f.$s; //poor
+				if ($this->points < 13) return ($f+1).$s; //medium
+				$f += 2;
+				if ($f > 4) $f=4;
+				return $f.$s; //game (9-11 tricks)
+			}
+			// minor support 5
+			else if (sizeof($this->hand[$s]) + 4 + $f >= 9 && ($s=="d" || $s=="c")) {
+				if ($this->points < 11) return $f.$s; //poor
+				if ($this->points < 13) return ($f+1).$s; //medium
+				$s = $this->longestSuit();
+				$l = sizeof($this->hand[$s]);
+				if ($l < 5) return $f."N";
+				return ($f+1).$s;
+			}
 		}
 
 		//find new suit
 		$s = $this->longestSuit();
 		$l = sizeof($this->hand[$s]);
+		logstr("new suit $s len=$l");
 		if ($l >= 5) {
-			return ($f+1).$s;
+			return $f.$s;
+		}
+		if ($this->points > 12 && $f < 3) {
+			return $f."N";
 		}
 		return "P";
 	}

@@ -100,12 +100,13 @@ function nextPlayer($st, $name, $n=1) {
 }
 function cmpbid($b1,$b2) {
 	$suit=array('c','d','h','s','N');
-	$f1=substr($b1,0,1);
-	$f2=substr($b2,0,1);
+	$f1=substr($b1,0,-1);
+	$f2=substr($b2,0,-1);
+	if ($f1 > 7 || $f2 > 7) return false;
 	$i = $f1 - $f2;
 	if ($i != 0) return $i;
-	$f1=substr($b1,1);
-	$f2=substr($b2,1);
+	$f1=substr($b1,-1);
+	$f2=substr($b2,-1);
 	return array_search($f1,$suit) - array_search($f2,$suit);
 }
 function checkBidAllowed($bids,$b) {
