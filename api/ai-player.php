@@ -1,15 +1,25 @@
 <?php
 include_once("api/helpers.php");
-//
-// most probable suis distribusion in one hand: 4-3-3-3, 5-3-3-2, 4-4-3-2
-// points in one suit is 10 (AKQJ=4+3+2+1=10)
-// max in one hand is 37 (4*AKQ+J=4*9+1=37)
-// 635013559600 possible hands newton(52,13)
-// game = 9-11 tricks
-// slam = 12-13 tricks
+/*
+ * high-cards points:
+ *   A=4, K=3, Q=2, J=1
+ * distribution points:
+ *   Void = 3, Singleton = 2, Doubleton = 1.
+ * length points:
+ *   major len=6 1, len=7 2
+ *   minor(good) len=6 1, len=7 2  (good=contains 2 of 3 top honors)
+ *
+ * most probable suis distribusion in one hand: 4-3-3-3, 5-3-3-2, 4-4-3-2
+ * points in one suit is 10 (AKQJ=4+3+2+1=10), total points = 40
+ * max in one hand is 37 (4*AKQ+J=4*9+1=37)
+ * 635013559600 possible hands newton(52,13)
+ * game = 9-11 tricks
+ * slam = 12-13 tricks
+ *
+ */
 class BridgePlayer {
 	var $hand;
-	var $points;
+	var $points;  //HCP = high-card points
 	function __construct($p) {
 		global $seat,$cardFig,$cardSuit;
 		$this->hand = array();
@@ -22,10 +32,10 @@ class BridgePlayer {
 		logstr("player: ".json_encode($p));
 		$p=0;
 		foreach ($cardSuit as $s)
-			$p += $this->pointsfor($this->hand[$s]);
+			$p += $this->pointsfor($this->hand[$s], $s);
 		$this->points = $p;
 	}
-	function pointsfor($figs) {
+	function pointsfor($figs,$s) {
 		$l = sizeof($figs);
 		$p = 0;
 		foreach ($figs as $f) {
@@ -34,8 +44,12 @@ class BridgePlayer {
 			else if ($f == 'Q' && $l>2) $p+=2;
 			else if ($f == 'J' && $l>3) $p+=1;
 		}
-		if ($l <= 1) $p+=1; //single or void
-		else if ($l > 6) $p+=1; //long suit
+		//bonus points
+		if ($l < 3) $p+=3-$l; //void +3, singleton +2, doubleton +1
+		else if ($l >= 6) {
+			if ($s=="s" || $s=="h") $p+=1;
+			else if ($p >= 5) $p+=1;
+		}
 		return $p;
 	}
 	function longestSuit() {
@@ -51,7 +65,7 @@ class BridgePlayer {
 		global $cardSuit;
 		$points=0; $suit="";
 		foreach ($cardSuit as $s) {
-			$p = $this->pointsfor($this->hand[$s]);
+			$p = $this->pointsfor($this->hand[$s], $s);
 			if ($points < $p) { $points=$p; $suit=$s;}
 		}
 		return $suit;
@@ -128,6 +142,7 @@ class BridgePlayer {
 		$f = substr($parbid,0,-1);
 
 		if ($s=="N") { //no trump
+			if ($f >= 3) return "P"; //(TODO higher bids)
 			//fall to longest suit selection
 		}
 		else { 
@@ -143,6 +158,7 @@ class BridgePlayer {
 			}
 			// minor support 5
 			else if (sizeof($this->hand[$s]) + 4 + $f >= 9 && ($s=="d" || $s=="c")) {
+				if ($f>=5) return "P"; //(TODO higher bids)
 				if ($this->points < 11) return $f.$s; //poor
 				if ($this->points < 13) return ($f+1).$s; //medium
 				$s = $this->longestSuit();
@@ -159,7 +175,7 @@ class BridgePlayer {
 		if ($l >= 5) {
 			return $f.$s;
 		}
-		if ($this->points > 12 && $f < 3) {
+		if ($this->points >= 12 && $f < 3) {
 			return $f."N";
 		}
 		return "P";

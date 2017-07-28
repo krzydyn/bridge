@@ -42,7 +42,7 @@ var Player = function() {
 	function cmp(a,b) {
 		return cardFig.indexOf(a)-cardFig.indexOf(b);
 	}
-	function pointsfor(figs) {
+	function pointsfor(figs,s) {
 		var l = figs.length;
 		var p = 0;
 		for (var f of figs) {
@@ -51,15 +51,20 @@ var Player = function() {
 			else if (f == 'Q' && l>2) p+=2;
 			else if (f == 'J' && l>3) p+=1;
 		}
-		if (l <= 1) p+=1; //single or void
+		//bonus points
+		if (l < 3) p+=3-l; //void +3, singleton +2, doubleton +1
+		else if (l >= 6) {
+			if (s=="s" || s=="h") p+=1;
+			else if (p >= 5) p+=1;
+		}
 		return p;
 	}
 	function points() {
 		var p=0;
-		p+=pointsfor(spades);
-		p+=pointsfor(hearts);
-		p+=pointsfor(diamonds);
-		p+=pointsfor(clubs);
+		p+=pointsfor(spades,'s');
+		p+=pointsfor(hearts,'h');
+		p+=pointsfor(diamonds,'d');
+		p+=pointsfor(clubs,'c');
 		return p;
 	}
 
