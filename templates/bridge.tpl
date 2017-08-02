@@ -328,8 +328,8 @@ function autoplay() {
     ajax.async('get','<%val("cfg.rooturl")%>api/autoplay?'+u,onGetInfoReady);
 }
 </script>
+<div class="center"><div class="pack">
 <!--
-<div>
 <form action="https://www.paypal.com/cgi-bin/webscr" method="post" target="_top">
 <input type="hidden" name="cmd" value="_s-xclick">
 <input type="hidden" name="hosted_button_id" value="5Z3P525EK5RNN">
@@ -343,7 +343,13 @@ function autoplay() {
 <input type="hidden" name="currency_code" value="PLN">
 <input type="image" src="https://www.paypalobjects.com/pl_PL/PL/i/btn/btn_buynowCC_LG.gif" border="0" name="submit" alt="PayPal – Płać wygodnie i bezpiecznie">
 <img alt="" border="0" src="https://www.paypalobjects.com/pl_PL/i/scr/pixel.gif" width="1" height="1">
+
+<input type="submit" name="submit" value="Wesprzyj">
 </form>
+-->
+
+<!-- This works ok -->
+<!--
 <form action="https://www.paypal.com/cgi-bin/webscr" method="post" target="_top">
 <input type="hidden" name="cmd" value="_s-xclick">
 <input type="hidden" name="hosted_button_id" value="NCS3TX8E872HJ">
@@ -351,6 +357,13 @@ function autoplay() {
 <img alt="" border="0" src="https://www.paypalobjects.com/pl_PL/i/scr/pixel.gif" width="1" height="1">
 </form>
 
-</div>
+<form action="https://www.paypal.com/cgi-bin/webscr" method="post" target="_top">
+<input type="hidden" name="cmd" value="_s-xclick">
+<input type="hidden" name="hosted_button_id" value="NCS3TX8E872HJ">
+<input type="image" src="https://www.paypalobjects.com/pl_PL/PL/i/btn/btn_paynow_SM.gif" border="0" name="submit" alt="PayPal – Płać wygodnie i bezpiecznie">
+<img alt="" border="0" src="https://www.paypalobjects.com/pl_PL/i/scr/pixel.gif" width="1" height="1">
+</form>
 -->
+
+</div></div>
 </body></html>
