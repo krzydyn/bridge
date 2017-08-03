@@ -204,6 +204,9 @@ function api_reset($a) {
 	api_getinfo($a);
 }
 
+function sortcard($cards) {
+}
+
 function api_deal($a) {
 	global $seat;
 	$db=null;
@@ -242,6 +245,9 @@ function api_deal($a) {
 				$state->$k->hand[]=$cards[$i]->fig.$cards[$i]->suit;
 				++$i;
 			}
+		}
+		foreach ($seat as $k) {
+			sortcards($state->$k->hand);
 		}
 		$state->phase="auction";
 		$state->dealer=$u;

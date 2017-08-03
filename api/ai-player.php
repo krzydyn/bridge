@@ -201,5 +201,25 @@ class BridgePlayer {
 			return $f.$s;
 		return "P";
 	}
+	function calc_cardplay($trick, $dumb, $trump) {
+		global $cardSuit;
+		logstr("playing hand :".json_encode($this->hand));
+		if (sizeof($trick) > 0) {
+			$card1 = $trick[0];
+			$s = substr($card1,-1);
+			$f = substr($card1,0,-1);
+			if (sizeof($this->hand[$s]) > 0) {
+				return $this->hand[$s][0].$s;
+			}
+			if (sizeof($this->hand[$trump]) > 0) {
+				return $this->hand[$trump][0].$trump;
+			}
+		}
+		foreach ($cardSuit as $s) {
+			if (sizeof($this->hand[$s]) > 0)
+				return $this->hand[$s][0].$s;
+		}
+		return "";
+	}
 }
 ?>

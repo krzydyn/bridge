@@ -213,6 +213,7 @@ function checkTrickEnd($state) {
 	$state->player = $np;
 }
 function auto_play($st) {
+	global $seat;
 	logstr("autoplay[ph=".$st->phase.",p=".$st->player."]");
 	$k = seatPlayer($st,$st->player);
 	$p = new BridgePlayer($st->$k);
@@ -225,6 +226,17 @@ function auto_play($st) {
 		return true;
 	}
 	else if ($st->phase == "game") {
+		if ($st->$k->face) {
+			foreach ($seat as $s) $st->$s->face="";
+		}
+		$dump = array(); // cards of dump player
+		$trick = array(); // current trick
+		$c = $p->calc_cardplay($trick,$dump,$st->contract);
+		if (!$c) return false;
+		$st->$k->hand = array_values(array_diff($st->$k->hand,array($c)));
+		$st->$k->face = $c;
+		checkTrickEnd($st);
+		return true;
 	}
 	return false;
 }
