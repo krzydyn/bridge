@@ -45,7 +45,7 @@ function api_join($a) {
 		}
 		if ($state->$k->name == $u) { }
 		else {
-			//find empty seat and sit down
+			//find empty seat and go there
 			foreach ($seat as $k) {
 				if (!$state->$k->name) { $state->$k->name=$u; break; }
 			}
@@ -54,7 +54,7 @@ function api_join($a) {
 		$c=0;
 		foreach ($seat as $k) {
 			if ($state->$k->name) ++$n;
-			if (!is_array($state->$k->hand))
+			if (is_array($state->$k->hand))
 				$c += sizeof($state->$k->hand);
 		}
 		if ($n < 4) $state->phase="wait";
@@ -204,9 +204,6 @@ function api_reset($a) {
 	api_getinfo($a);
 }
 
-function sortcard($cards) {
-}
-
 function api_deal($a) {
 	global $seat;
 	$db=null;
@@ -246,8 +243,10 @@ function api_deal($a) {
 				++$i;
 			}
 		}
+		logstr("dealer is: ".seatPlayer($state,$u));
 		foreach ($seat as $k) {
 			sortcards($state->$k->hand);
+			logstr("$k:".json_encode($state->$k->hand));
 		}
 		$state->phase="auction";
 		$state->dealer=$u;
@@ -339,7 +338,7 @@ function api_put($a) {
 		$k = seatPlayer($state,$state->player);
 		if ($state->$k->face) {
 			//clear all faces
-			foreach ($seat as $k) $state->$k->face="";
+			foreach ($seat as $k) $state->$k->face = "";
 		}
 		foreach ($seat as $k) {
 			if ($state->$k->name==$u) {
@@ -350,6 +349,7 @@ function api_put($a) {
 				}
 				$state->$k->hand = array_values(array_diff($state->$k->hand,array($c)));
 				$state->$k->face = $c;
+				$state->cardoff[] = $c;
 				break;
 			}
 		}
@@ -381,12 +381,37 @@ function api_autoplay($a) {
 	}
 	if ($row=$r->fetch()) {
 		$state=json_decode($row["state"]);
-		$k=seatPlayer($state,$state->player);
-		if ($k) {
-			if (auto_play($state)) {
-				$row["state"]=json_encode($state);
-				saveRow($db,$row);
-			}
+		if (auto_play($state)) {
+			$row["state"]=json_encode($state);
+			saveRow($db,$row);
+		}
+	}
+	$db->close();
+	api_getinfo($a);
+}
+function api_undo($a) {
+	global $seat;
+	$db=null;
+	try {
+		$db = DB::connectDefault();
+	}
+	catch(Exception $e) {
+		echo json_encode(array("error"=>get_class($e).": ".$e->getMessage()));
+		return ;
+	}
+	$u=$a["u"];
+	$t=$a["t"];
+
+	$r=$db->query("select name,state from tables where name=?",array("1"=>$t));
+	if ($r===false) {
+		echo json_encode(array("error"=>$db->errmsg()));
+		return;
+	}
+	if ($row=$r->fetch()) {
+		$state=json_decode($row["state"]);
+		if (undoTurn($state)) {
+			$row["state"]=json_encode($state);
+			saveRow($db,$row);
 		}
 	}
 	$db->close();

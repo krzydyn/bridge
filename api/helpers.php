@@ -30,6 +30,7 @@ class State {
 	var $bids=array(); //list of bids
 	var $contract;     //final contract
 	var $contractor;   //player for contract
+	var $cardoff=array(); // cards already played
 	var $west;
 	var $north;
 	var $east;
@@ -98,6 +99,20 @@ function nextPlayer($st, $name, $n=1) {
 	}
 	return false;
 }
+function cmpcard($c1, $c2) {
+	global $cardFig,$cardSuit;
+	$f1=substr($c1,0,-1);
+	$f2=substr($c2,0,-1);
+	$s1=substr($c1,-1);
+	$s2=substr($c2,-1);
+	if ($s1==$s2) $r=array_search($f1,$cardFig)-array_search($f2,$cardFig);
+	else $r=array_search($s1, $cardSuit)-array_search($s2, $cardSuit);
+	return $r;
+}
+function sortcards(&$cards) {
+	usort($cards,"cmpcard");
+}
+
 function cmpbid($b1,$b2) {
 	$suit=array('c','d','h','s','N');
 	$f1=substr($b1,0,-1);
@@ -176,12 +191,13 @@ function checkAuctionEnd($st) {
 	}
 	else $st->player=nextPlayer($st,$st->player);
 }
-function beatCard($c1,$c2,$trs) {
+// $c2 will beat $c1
+function beatCard($c1,$c2,$trump) {
 	global $cardFig;
 	$s1 = substr($c1,-1);
 	$s2 = substr($c2,-1);
-	if ($s1 == $trs && $s2 != $trs) return false;
-	if ($s2 == $trs && $s1 != $trs) return true;
+	if ($s1 == $trump && $s2 != $trump) return false;
+	if ($s2 == $trump && $s1 != $trump) return true;
 	if ($s1 != $s2) return false;
 	$f1 = substr($c1,0,-1);
 	$f2 = substr($c2,0,-1);
@@ -193,12 +209,12 @@ function checkTrickEnd($state) {
 	$k = seatPlayer($state,$np);
 	if ($state->$k->face) {
 		// trick end, find the winner
-		$trs = substr($state->contract,-1);
+		$trump = substr($state->contract,-1);
 		$c = $state->$k->face;
 		$win = $k;
 		foreach ($seat as $k) {
 			if ($k == $win) continue;
-			if (beatCard($c,$state->$k->face,$trs)) {
+			if (beatCard($c,$state->$k->face,$trump)) {
 				$c = $state->$k->face;
 				$win = $k;
 			}
@@ -216,29 +232,46 @@ function auto_play($st) {
 	global $seat;
 	logstr("autoplay[ph=".$st->phase.",p=".$st->player."]");
 	$k = seatPlayer($st,$st->player);
+	if (!$k) return false;
+
 	$p = new BridgePlayer($st->$k);
 	if ($st->phase == "auction") {
 		$bid = $p->calc_auction($st->bids);
-		logstr("autoplay[ph=auction,p=".$st->player."] bid=".$bid);
+		logstr("bid=".$bid);
 		$st->$k->face = $bid;
 		$st->bids[] = $bid;
 		checkAuctionEnd($st);
 		return true;
 	}
 	else if ($st->phase == "game") {
-		if ($st->$k->face) {
-			foreach ($seat as $s) $st->$s->face="";
-		}
 		$dump = array(); // cards of dump player
 		$trick = array(); // current trick
+		$pl = nextPlayer($st,$st->contractor,2);
+		$pl = seatPlayer($st,$pl);
+		$dump = $st->$pl->hand;
+		if ($st->$k->face) {
+			foreach ($seat as $s) $st->$s->face = "";
+		}
+		else {
+			for($i=0; $i < 4; ++$i) {
+				$pl = nextPlayer($st,$st->player,$i+1);
+				$pl = seatPlayer($st,$pl);
+				if ($st->$pl->face)
+					$trick[] = $st->$pl->face;
+			}
+		}
 		$c = $p->calc_cardplay($trick,$dump,$st->contract);
 		if (!$c) return false;
 		$st->$k->hand = array_values(array_diff($st->$k->hand,array($c)));
 		$st->$k->face = $c;
+		$st->cardoff[] = $c;
+		logstr("card=".$c);
 		checkTrickEnd($st);
 		return true;
 	}
 	return false;
+}
+function undoTurn($state) {
 }
 function addGamePoints($state) {
 	global $seat;
@@ -259,4 +292,5 @@ function addGamePoints($state) {
 			$points += 40+30*($n-1);
 	}
 }
+
 ?>

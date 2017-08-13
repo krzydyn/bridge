@@ -35,6 +35,7 @@ var Player = function() {
 
 	this.phase = '';
 	this.name = '';
+	this.table = '';
 	this.face = '';
 	this.current = 0;
 	this.cards=0;
@@ -99,12 +100,12 @@ var Player = function() {
 		if (that.cards==0) return s;
 
 		if (that.phase=='auction') {
-			if (that.user || that.name.substring(0,2)=='AI') s+=' p'+points()+'<br>';
+			if (that.user || that.table=='test') s+=' p'+points()+'<br>';
 			else return s;
 		}
 		else if (that.phase=='game') {
-			if (that.user || (that.partner.contractor && that.r.cards<13) || (that.partner.user && that.contractor)) {
-			}
+			if (that.user || (that.partner.contractor && that.r.cards<13) || (that.partner.user && that.contractor) || 
+					that.table=='test') {}
 			else return s+'<br>Cards: '+that.cards;
 		}
 		else return s;

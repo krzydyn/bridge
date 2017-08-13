@@ -58,7 +58,7 @@ $r->addRoute("","/api/(\\w+).*",function() {
 	require_once("api/bridge.php");
 	$args = $req->getval("req");
 	$func = "api_".$func;
-	logstr("api: ".$func."(".print_r($args,true).")");
+	logstr("api: ".$func."(".json_encode($args).")");
 	$func($args);
 });
 
@@ -93,5 +93,6 @@ function initdb() {
 		logstr("create table $t $v");
 		$r=$db->tabcreate($t,$v);
 	}
+	$db->close();
 }
 ?>

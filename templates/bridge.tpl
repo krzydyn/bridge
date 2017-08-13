@@ -124,6 +124,7 @@ function onGetInfoReady(rc,tx,tag) {
 function makePlayer(st,pd) {
 	var p = new Player();
 	p.name=pd.name;
+	p.table=st.table;
 	p.phase=st.phase;
 	p.face=pd.face;
 	p.tricks=pd.tricks;
@@ -141,9 +142,11 @@ function makePlayer(st,pd) {
 	p.sort();
 	return p;
 }
-function faceView(f) {
+function faceView(st,f) {
 	if (!f) return '';
-	var s='<div class="face bubble">';
+	var s='<div class="face ';
+	if (st.phase=='auction') s+='bubble';
+	s+='">';
 	if (f=='P') s+='pass';
 	else if (f=='D') s+='double';
 	else if (f=='R') s+='redouble';
@@ -157,9 +160,10 @@ function faceView(f) {
 }
 function boardView(st) {
 	var s='<table class="board">';
-	s += '<tr><td colspan="3" class="north">N '+faceView(st.north.face)+'</td></tr>';
-	s += '<tr><td class="west">W'+faceView(st.west.face)+'</td><td></td><td class="east">E'+faceView(st.east.face)+'</td></tr>';
-	s += '<tr><td colspan="3" class="south">S '+faceView(st.south.face)+'</td></tr>';
+	s += '<tr><td colspan="3" class="north">N '+faceView(st,st.north.face)+'</td></tr>';
+	s += '<tr><td class="west">W'+faceView(st,st.west.face)+'</td><td></td>';
+	s += '<td class="east">E'+faceView(st,st.east.face)+'</td></tr>';
+	s += '<tr><td colspan="3" class="south">S '+faceView(st,st.south.face)+'</td></tr>';
 	return s+'</table>';
 }
 function setBid(obj) {
