@@ -54,6 +54,7 @@ function resetState($state) {
 	$state->contractor="";
 	$state->player="";
 	$state->bids=array();
+	$state->cardoff=array();
 }
 function shuffleCards() {
 	global $cardFig,$cardSuit;
@@ -260,7 +261,7 @@ function auto_play($st) {
 					$trick[] = $st->$pl->face;
 			}
 		}
-		$c = $p->calc_cardplay($trick,$dump,$st->contract);
+		$c = $p->calc_cardplay($trick,$dump,$st->contract,$st->cardoff);
 		if (!$c) return false;
 		$st->$k->hand = array_values(array_diff($st->$k->hand,array($c)));
 		$st->$k->face = $c;

@@ -36,7 +36,7 @@ class BridgePlayer {
 		}
 		$p=0;
 		foreach ($cardSuit as $s)
-			$p += $this->points_hcp($this->hand[$s], $s);
+			$p += $this->points_hcp($this->hand[$s]);
 		$this->hcp = $p;
 
 		//bonus points
@@ -52,7 +52,7 @@ class BridgePlayer {
 		}
 		$this->points=$this->hcp + $p;
 	}
-	function points_hcp($figs,$s) {
+	function points_hcp($figs) {
 		$l = sizeof($figs);
 		$p = 0;
 		foreach ($figs as $f) {
@@ -76,25 +76,52 @@ class BridgePlayer {
 		global $cardSuit;
 		$points=0; $suit="";
 		foreach ($cardSuit as $s) {
-			$p = $this->points_hcp($this->hand[$s], $s);
+			$p = $this->points_hcp($this->hand[$s]);
 			if ($points < $p) { $points=$p; $suit=$s;}
 		}
 		return $suit;
+	}
+	function winningCard($cardoff,$trump) {
+		global $cardSuit,$cardFig;
+		$tp=0;
+		foreach ($cardoff as $c) {
+			if (substr($c,-1)==$trump) ++$tp;
+		}
+		foreach ($cardSuit as $s) {
+			if ($s == $trump || sizeof($this->hand[$s])==0) continue;
+			$tf = $this->hand[$s][0];
+			foreach ($cardFig as $f) {
+				if ($f == $tf) {
+					if (array_search($f,$cardFig)>3 && $tp<13) break;
+					return $tf.$s;
+				}
+				if (array_search($f.$s,$cardoff)===false) break;
+			}
+		}
+		$s=$trump;
+		if (sizeof($this->hand[$s])==0) return false;
+		$tf = $this->hand[$s][0];
+		foreach ($cardFig as $f) {
+			if ($f == $tf) return $tf.$s;
+			if (array_search($f.$s,$cardoff)===false) break;
+		}
+		return false;
 	}
 	function highestSuit($trump) {
 		global $cardSuit,$cardFig;
 		$fm=$cardFig[sizeof($cardFig)-1];
 		$sm="";
 		foreach ($cardSuit as $s) {
-			if (sizeof($this->hand[$s])==0 || $s==$trump) continue;
-			$f=$this->hand[$s][0];
+			if ($s == $trump || sizeof($this->hand[$s])==0) continue;
+			$f = $this->hand[$s][0];
 			if (array_search($f,$cardFig) < array_search($fm,$cardFig)) {
 				$fm=$f; $sm=$s;
 			}
 		}
-		if ($trump && empty($sm)) {
-			$s=$trump;
-			$f=$this->hand[$s][0];
+		$s = $trump;
+		if (sizeof($this->hand[$s])==0) return $sm;
+		if (empty($sm)) {
+			$f = $this->hand[$s][0];
 			if (array_search($f,$cardFig) < array_search($fm,$cardFig)) {
 				$fm=$f; $sm=$s;
 			}
@@ -156,14 +183,15 @@ class BridgePlayer {
 		logstr("hcp=".$this->hcp."  points=".$this->points);
 		logstr("bids=".implode(",",$bids));
 		$minbid = $this->last_value_bid($bids);
-		if (!$minbid) return $this->opening_bid();
+		if (!$minbid) return $this->opening_bid($bids);
 		//partner bid
 		$parbid = $this->last_partner_bid($bids);
-		if (!$parbid) $b=$this->opening_bid();
-		else $b=$this->next_bid($parbid,$bids[sizeof($bids)-1]);
+		if (!$parbid) $b=$this->opening_bid($bids);
+		else $b=$this->next_bid($parbid,$bids);
 		return $this->fixBid($bids,$b);
 	}
-	function opening_bid() {
+
+	function opening_bid($bids) {
 		logstr("opening bid");
 		if ($this->points < 13 || $this->hcp < 10) return "P"; // pass
 
@@ -173,7 +201,10 @@ class BridgePlayer {
 		logstr("longestSuit = ".$s.", len=".$l);
 		// 13-21 level 1
 		if ($this->points < 15) {
-			if ($l < 5) return "1c";
+			if ($l < 5) {
+				if (sizeof($bids) > 0) return "P";
+				return "1c";
+			}
 			return "1".$s;
 		}
 		if ($this->points < 22) {
@@ -183,17 +214,18 @@ class BridgePlayer {
 
 		// 22.. level 2
 		if ($l < 5 && $this->hcp > 20) return "2N";
-		if ($this->points <= 10) { //preempt oponets if have strong color
+		if ($this->points < 24) { //preempt oponents if have strong color
 			if ($l >= 8) {
-				$p = $this->points_hcp($this->hand[$s], $s);
-				if ($p > 8) return "4".$s;
-				if ($p > 7) return "3".$s;
+				if ($this->hcp < 7) return "2".$s;
+				if ($this->hcp < 8) return "3".$s;
+				return "4".$s;
 			}
+			return "2".$s;
 		}
-		else if ($this->points >= 24) return "2c"; //strong 2c
-		return "2".$s;
+
+		return "2c"; //strong 2c
 	}
-	function next_bid($parbid) {
+	function next_bid($parbid,$bids) {
 		logstr("next bid (partner $parbid)");
 		if ($this->points < 6) return "P";
 		$s = substr($parbid,-1);
@@ -208,26 +240,33 @@ class BridgePlayer {
 			if (sizeof($this->hand[$s]) + 4 + $f >= 8 && ($s=="s" || $s=="h")) {
 				if ($f >= 4) return "P"; //(TODO higher bids)
 				if ($this->points < 11) return $f.$s; //poor
-				if ($this->points < 13) return ($f+1).$s; //medium
-				$f += 2;
-				if ($f > 4) $f=4;
+				if (sizeof($bids) < 4) ++$f;
+				if ($this->points < 13) return $f.$s; //medium
+				++$f;
+				if ($f > 4) return "P"; //(TODO higher bids)
 				return $f.$s; //game (9-11 tricks)
 			}
 			// minor support 5
 			else if (sizeof($this->hand[$s]) + 4 + $f >= 10 && ($s=="d" || $s=="c")) {
 				if ($f>=5) return "P"; //(TODO higher bids)
 				if ($this->points < 11) return $f.$s; //poor
-				if ($this->points < 13) return ($f+1).$s; //medium
+				if (sizeof($bids) < 4) ++$f;
+				if ($this->points < 13) return $f.$s; //medium
 				$ms = $this->longestSuit();
 				$l = sizeof($this->hand[$ms]);
 				if ($l < 5 && $this->hcp>=10+$f) return $f."N";
 				if ($ms=='s' || $ms=='h') $s=$ms;
-				return ($f+1).$s;
+				++$f;
+				if ($f > 5) return "P"; //(TODO higher bids)
+				return $f.$s;
 			}
 		}
 
 		//find new suit
-		$s = $this->longestSuit();
+		if (sizeof($bids) < 4)
+			$s = $this->longestSuit();
+		else
+			$s = $this->strongestSuit();
 		$l = sizeof($this->hand[$s]);
 		if ($l >= 5) return $f.$s;
 		if ($this->hcp >= 10+$f) {
@@ -237,7 +276,7 @@ class BridgePlayer {
 			return $f.$s;
 		return "P";
 	}
-	function calc_cardplay($trick, $dumb, $contract) {
+	function calc_cardplay($trick, $dumb, $contract, $cardoff) {
 		global $cardSuit;
 		$trump=substr($contract,-1);
 		logstr("playing hand :".json_encode($this->hand));
@@ -259,9 +298,14 @@ class BridgePlayer {
 			$s = substr($c1,-1);
 			if (sizeof($this->hand[$s]) > 0) {
 				if ($winid==$parid) return $this->hand[$s][sizeof($this->hand[$s])-1].$s;
-				$c2=$this->hand[$s][0].$s;
-				if (beatCard($c2,$cwin,$trump)) return $this->hand[$s][sizeof($this->hand[$s])-1].$s;
-				return $this->hand[$s][0].$s;
+				$cb="";
+				foreach ($this->hand[$s] as $f) {
+					$c2=$f.$s;
+					if (beatCard($c2,$cwin,$trump)) break;
+					$cb=$c2;
+				}
+				if (!$cb) return $this->hand[$s][sizeof($this->hand[$s])-1].$s;
+				return $cb;
 			}
 			if ($winid==$parid) {
 				foreach ($cardSuit as $s) {
@@ -271,12 +315,25 @@ class BridgePlayer {
 			}
 			else if (sizeof($this->hand[$trump]) > 0) {
 				$s=$trump;
-				$c2=$this->hand[$s][sizeof($this->hand[$s])-1].$s;
-				if (beatCard($c2,$cwin,$trump)) $s=$this->smallestSuit($trump);
-				return $this->hand[$s][sizeof($this->hand[$s])-1].$s;
+				$cb="";
+				foreach ($this->hand[$trump] as $f) {
+					$c2=$f.$s;
+					if (beatCard($c2,$cwin,$trump)) break;
+					$cb=$c2;
+				}
+				if (!$cb) {
+					$s=$this->smallestSuit($trump);
+					return $this->hand[$s][sizeof($this->hand[$s])-1].$s;
+				}
+				return $cb;
 			}
 		}
 		else $cwin=0;
+
+		//winning card
+		$c2 = $this->winningCard($cardoff,$trump);
+		if ($c2) return $c2;
+
 		//first highest card
 		$s=$this->highestSuit($trump);
 		$c2=$this->hand[$s][0].$s;
@@ -284,7 +341,9 @@ class BridgePlayer {
 			$s=$this->smallestSuit($trump);
 			return $this->hand[$s][sizeof($this->hand[$s])-1].$s;
 		}
-		return $this->hand[$s][0].$s;
+		if (sizeof($this->hand[$s]) > 1) return $this->hand[$s][1].$s;
+		$s=$this->smallestSuit($trump);
+		return $this->hand[$s][sizeof($this->hand[$s])-1].$s;
 	}
 }
 ?>
