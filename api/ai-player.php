@@ -74,10 +74,15 @@ class BridgePlayer {
 	}
 	function strongestSuit() {
 		global $cardSuit;
-		$points=0; $suit="";
+		$points=0; $len=0; $suit="";
 		foreach ($cardSuit as $s) {
 			$p = $this->points_hcp($this->hand[$s]);
-			if ($points < $p) { $points=$p; $suit=$s;}
+			if ($points < $p) {
+				$points=$p; $suit=$s; $len=sizeof($this->hand[$s]);
+			}
+			else if ($points == $p && $len < sizeof($this->hand[$s])) {
+				$suit=$s; $len=sizeof($this->hand[$s]);
+			}
 		}
 		return $suit;
 	}
@@ -254,7 +259,7 @@ class BridgePlayer {
 				if ($this->points < 13) return $f.$s; //medium
 				$ms = $this->longestSuit();
 				$l = sizeof($this->hand[$ms]);
-				if ($l < 5 && $this->hcp>=10+$f) return $f."N";
+				if ($l < 5 && $this->hcp>10+$f) return $f."N";
 				if ($ms=='s' || $ms=='h') $s=$ms;
 				++$f;
 				if ($f > 5) return "P"; //(TODO higher bids)
