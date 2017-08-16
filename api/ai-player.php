@@ -63,12 +63,30 @@ class BridgePlayer {
 		}
 		return $p;
 	}
-	function longestSuit() {
+	function shortestSuit() {
 		global $cardSuit;
-		$len=0; $suit="";
+		$len=13; $suit="";
 		foreach ($cardSuit as $s) {
 			$l = sizeof($this->hand[$s]);
-			if ($len < $l) { $len=$l; $suit=$s;}
+			if ($l == 0) continue;
+			if ($len > $l) {
+				 $len=$l; $suit=$s;
+			}
+		}
+		return $suit;
+	}
+	function longestSuit() {
+		global $cardSuit;
+		$points=0; $len=0; $suit="";
+		foreach ($cardSuit as $s) {
+			$l = sizeof($this->hand[$s]);
+			if ($len < $l) {
+				 $len=$l; $suit=$s; $points = $this->pointsHCP($this->hand[$s]);
+			}
+			else if ($len == $l) {
+				$p = $this->pointsHCP($this->hand[$s]);
+				if ($points < $p) {$suit=$s;$points=$p;}
+			}
 		}
 		return $suit;
 	}
@@ -76,6 +94,7 @@ class BridgePlayer {
 		global $cardSuit;
 		$points=0; $len=0; $suit="";
 		foreach ($cardSuit as $s) {
+			if (sizeof($this->hand[$s]) < 3) continue;
 			$p = $this->pointsHCP($this->hand[$s]);
 			if ($points < $p) {
 				$points=$p; $suit=$s; $len=sizeof($this->hand[$s]);
@@ -86,7 +105,17 @@ class BridgePlayer {
 		}
 		return $suit;
 	}
-	function winningCard($cardoff,$trump) {
+	function isWinningCard($c,$cardoff) {
+		global $cardSuit,$cardFig;
+		$s=substr($c,-1);
+		$tf=substr($c,0,-1);
+		foreach ($cardFig as $f) {
+			if ($f == $tf) return true;
+			if (array_search($f.$s,$cardoff)===false) break;
+		}
+		return false;
+	}
+	function winningCard($trump,$cardoff) {
 		global $cardSuit,$cardFig;
 		/*$tp=0;
 		foreach ($cardoff as $c) {
@@ -96,9 +125,7 @@ class BridgePlayer {
 			if ($s == $trump || sizeof($this->hand[$s])==0) continue;
 			$tf = $this->hand[$s][0];
 			foreach ($cardFig as $f) {
-				if ($f == $tf) {
-					return $tf.$s;
-				}
+				if ($f == $tf) return $tf.$s;
 				if (array_search($f.$s,$cardoff)===false) break;
 			}
 		}
@@ -141,16 +168,14 @@ class BridgePlayer {
 		foreach ($cardSuit as $s) {
 			if (sizeof($this->hand[$s])==0 || $s==$trump) continue;
 			$f=$this->hand[$s][sizeof($this->hand[$s])-1];
-			if (array_search($f,$cardFig) > array_search($fm,$cardFig)) {
-				$fm=$f; $sm=$s;
-			}
-			else if (empty($sm) && array_search($f,$cardFig) == array_search($fm,$cardFig)) {
+			if (array_search($f,$cardFig) >= array_search($fm,$cardFig)) {
 				$fm=$f; $sm=$s;
 			}
 		}
 		if ($trump=="N") return $sm;
-		if (empty($sm)) {
-			$s=$trump;
+		if ($sm) return $sm;
+		$s=$trump;
+		if (sizeof($this->hand[$s])>0) {
 			$f=$this->hand[$s][sizeof($this->hand[$s])-1];
 			if (array_search($f,$cardFig) > array_search($fm,$cardFig)) {
 				$fm=$f; $sm=$s;
@@ -237,7 +262,7 @@ class BridgePlayer {
 	}
 	function next_bid($parbid,$bids) {
 		logstr("next bid (partner $parbid)");
-		if ($this->points < 6) return "P";
+		if ($this->points < 5) return "P";
 		$s = substr($parbid,-1);
 		$f = substr($parbid,0,-1);
 
@@ -257,7 +282,7 @@ class BridgePlayer {
 				return $f.$s; //game (9-11 tricks)
 			}
 			// minor support 5
-			else if (sizeof($this->hand[$s]) + 4 + $f >= 10 && ($s=="d" || $s=="c")) {
+			else if (sizeof($this->hand[$s]) + 4 + $f >= 9 && ($s=="d" || $s=="c")) {
 				if ($f>=5) return "P"; //(TODO higher bids)
 				if ($this->points < 11) return $f.$s; //poor
 				if (sizeof($bids) < 4) ++$f;
@@ -277,6 +302,7 @@ class BridgePlayer {
 			$s = $this->longestSuit();
 		else
 			$s = $this->strongestSuit();
+		logstr("new suit: $s");
 		$l = sizeof($this->hand[$s]);
 		if ($l >= 5) {
 			if (($s=="s" || $s=="h") && $f<4) return $f.$s;
@@ -291,77 +317,94 @@ class BridgePlayer {
 		return "P";
 	}
 	function calc_cardplay($trick, $dumb, $contract, $cardoff) {
-		global $cardSuit;
 		$cwin=0;
 		$trump=substr($contract,-1);
 		logstr("playing hand :".json_encode($this->hand));
-		logstr("current trick:".json_encode($trick));
-		if (sizeof($trick) > 0) {
-			//find current winner
-			$winid=0;
-			$cwin=$trick[0];
-			for ($i=1; $i < sizeof($trick); ++$i) {
-				$c2=$trick[$i];
-				if (beatCard($cwin,$c2,$trump)) {
-					$winid=$i;
-					$cwin=$c2;
-				}
-			}
-			$parid=sizeof($trick)-2;
-			$c1 = $trick[0];
-			$f1 = substr($c1,0,-1);
-			$s = substr($c1,-1);
-			if (sizeof($this->hand[$s]) > 0) {
-				if ($winid==$parid) return $this->hand[$s][sizeof($this->hand[$s])-1].$s;
-				$cb="";
-				foreach ($this->hand[$s] as $f) {
-					$c2=$f.$s;
-					if (beatCard($c2,$cwin,$trump)) break;
-					$cb=$c2;
-				}
-				if (!$cb) return $this->hand[$s][sizeof($this->hand[$s])-1].$s;
-				return $cb;
-			}
-			if ($winid==$parid) {
-				foreach ($cardSuit as $s) {
-					if ($s == $trump || sizeof($this->hand[$s])==0) continue;
-					return $this->hand[$s][sizeof($this->hand[$s])-1].$s;
-				}
-				$s=$trump;
-				return $this->hand[$s][sizeof($this->hand[$s])-1].$s;
-			}
-			else if ($trump!="N" && sizeof($this->hand[$trump]) > 0) {
-				$s=$trump;
-				$cb="";
-				foreach ($this->hand[$trump] as $f) {
-					$c2=$f.$s;
-					if (beatCard($c2,$cwin,$trump)) break;
-					$cb=$c2;
-				}
-				if (!$cb) {
-					$s=$this->smallestSuit($trump);
-					return $this->hand[$s][sizeof($this->hand[$s])-1].$s;
-				}
-				return $cb;
-			}
-		}
+		if (sizeof($trick)==0) return $this->open_trick($trick, $dumb, $trump, $cardoff);
+		return $this->next_trick($trick, $dumb, $trump, $cardoff);
+	}
 
+	function open_trick($trick, $dumb, $trump, $cardoff) {
+		global $cardSuit;
+		logstr("open trick");
 		//winning card
-		$c2 = $this->winningCard($cardoff,$trump);
+		$c2 = $this->winningCard($trump,$cardoff);
 		if ($c2) {
-			logstr("winning card: $c2, cwin=$cwin");
-			if (!$cwin || beatCard($c2,$cwin,$trump)===false) return $c2;
+			logstr("winning card: ".$c2);
+			return $c2;
 		}
 
-		//first highest card
-		$s=$this->highestSuit($trump);
-		$c2=$this->hand[$s][0].$s;
-		if ($cwin && beatCard($c2,$cwin,$trump)) {
-			$s=$this->smallestSuit($trump);
-			return $this->hand[$s][sizeof($this->hand[$s])-1].$s;
+		//singleton
+		$s=$this->shortestSuit($trump);
+		if ($s!=$trump && sizeof($this->hand[$s]) == 1) {
+			$c2=$this->hand[$s][0].$s;
+			logstr("singleton: ".$c2);
+			return $c2;
 		}
+
+		//find highest card
+		$s=$this->highestSuit($trump);
 		if (sizeof($this->hand[$s]) > 1) return $this->hand[$s][1].$s;
 		$s=$this->smallestSuit($trump);
+		return $this->hand[$s][sizeof($this->hand[$s])-1].$s;
+	}
+	function next_trick($trick, $dumb, $trump, $cardoff) {
+		global $cardSuit;
+		logstr("next trick:".json_encode($trick));
+		//find current winning card
+		$winid=0;
+		$cwin=$trick[0];
+		for ($i=1; $i < sizeof($trick); ++$i) {
+			$c2=$trick[$i];
+			if (beatCard($cwin,$c2,$trump)) {
+				$winid=$i;
+				$cwin=$c2;
+			}
+		}
+		logstr("current win: ".$cwin);
+		$parid=sizeof($trick)-2;
+		$c0 = $trick[0];
+		$s = substr($c0,-1);
+
+		if (sizeof($this->hand[$s]) > 0) {
+			if ($winid==$parid) return $this->hand[$s][sizeof($this->hand[$s])-1].$s;
+			$cb="";
+			foreach ($this->hand[$s] as $f) {
+				$c2=$f.$s;
+				if ($this->isWinningCard($c2,$cardoff)===false) break;
+				if (beatCard($cwin,$c2,$trump)===false) break;
+				logstr("winnig card: ".$c2);
+				$cb=$c2;
+			}
+			if ($cb) return $cb;
+			foreach ($this->hand[$s] as $f) {
+				$c2=$f.$s;
+				if (beatCard($cwin,$c2,$trump)===false) break;
+				logstr("beating card: ".$c2);
+				$cb=$c2;
+			}
+			if ($cb) return $cb;
+			return $this->hand[$s][sizeof($this->hand[$s])-1].$s;
+		}
+
+		// no card in color
+		if ($winid==$parid) {
+			$s = $this->smallestSuit($trump);
+			return $this->hand[$s][sizeof($this->hand[$s])-1].$s;
+		}
+
+		if ($trump!="N" && sizeof($this->hand[$trump]) > 0) {
+			$s=$trump;
+			$cb="";
+			foreach ($this->hand[$trump] as $f) {
+				$c2=$f.$s;
+				if (beatCard($cwin,$c2,$trump)===false) break;
+				$cb=$c2;
+			}
+			if ($cb) return $cb;
+		}
+		$s=$this->smallestSuit($trump);
+		if (!$s) return false;
 		return $this->hand[$s][sizeof($this->hand[$s])-1].$s;
 	}
 }

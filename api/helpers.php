@@ -199,7 +199,7 @@ function beatCard($c1,$c2,$trump) {
 	$s2 = substr($c2,-1);
 	if ($s1 == $trump && $s2 != $trump) return false;
 	if ($s2 == $trump && $s1 != $trump) return true;
-	if ($s1 != $s2) return true;
+	if ($s1 != $s2) return false;
 	$f1 = substr($c1,0,-1);
 	$f2 = substr($c2,0,-1);
 	return array_search($f1,$cardFig) > array_search($f2,$cardFig);
