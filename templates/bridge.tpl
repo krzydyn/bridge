@@ -122,7 +122,7 @@ function onGetInfoReady(rc,tx,tag) {
 	//if (tag=='gi' && !st.error) setTimeout(showState,5000);
 }
 function makePlayer(st,pd) {
-	var p = new Player();
+	var p = new Player(pd.hand);
 	p.name=pd.name;
 	p.table=st.table;
 	p.phase=st.phase;
@@ -131,15 +131,6 @@ function makePlayer(st,pd) {
 	p.user = (pd.name == st.user) ? 1 : 0;
 	p.current = (pd.name == st.info.player) ? 1 : 0;
 	p.contractor = (pd.name == st.info.contractor) ? 1 : 0;
-	for (var fc of pd.hand) {
-		var fig = fc.substring(0,fc.length-1);
-		var suit = fc.substring(fc.length-1,fc.length);
-		if (suit=='s') p.addSpade(fig);
-		else if (suit=='h') p.addHeart(fig);
-		else if (suit=='d') p.addDiamond(fig);
-		else p.addClub(fig);
-	}
-	p.sort();
 	return p;
 }
 function faceView(st,f) {

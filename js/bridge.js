@@ -1,7 +1,7 @@
 function Card(f,s) {
-	this.fig=f;
-	this.suit=c;
-	this.toString = function() {return this.fig+this.suit;}
+	this.f=f;
+	this.s=c;
+	this.toString = function() {return this.f+this.s;}
 }
 
 var cardFig = [ 'A','K','Q','J','10','9','8','7','6','5','4','3','2' ];
@@ -9,9 +9,9 @@ var cardSuit = [ 's','h','d','c' ];
 
 function Deck() {
 	var cards = []; // private
-	for (var fig of cardFig) {
-		for (var suit of cardSuit)
-			cards.push(new Card(fig,suit));
+	for (var f of cardFig) {
+		for (var s of cardSuit)
+			cards.push(new Card(f,s));
 	}
 	this.getCards = function() { return cards; }
 	this.shuffle = function() {
@@ -26,24 +26,37 @@ function Deck() {
 	}
 }
 
-var Player = function() {
+var Player = function(cards) {
 	var that=this;
-	var spades = [];
-	var hearts = [];
-	var diamonds = [];
-	var clubs = [];
+	var hand=[];
+	var hcp;
+	var points;
 
 	this.phase = '';
 	this.name = '';
 	this.table = '';
 	this.face = '';
 	this.current = 0;
-	this.cards=0;
+	this.cards=cards.length;
 
-	function cmp(a,b) {
-		return cardFig.indexOf(a)-cardFig.indexOf(b);
+	//contructor start
+	for (var s of cardSuit) { hand[s]=[]; }
+	for (var c of cards) {
+		var f = c.substring(0,c.length-1);
+		var s = c.substring(c.length-1,c.length);
+		hand[s].push(f);
 	}
-	function pointsfor(figs,s) {
+	sorthand();
+	hcp=0;
+	points=0;
+	for (var s of cardSuit) {
+		hcp += pointsHCP(hand[s]);
+		points += pointsBonus(hand[s],s);
+	}
+	points+=hcp;
+	//constructor end
+
+	function pointsHCP(figs) {
 		var l = figs.length;
 		var p = 0;
 		for (var f of figs) {
@@ -52,34 +65,27 @@ var Player = function() {
 			else if (f == 'Q' && l>2) p+=2;
 			else if (f == 'J' && l>3) p+=1;
 		}
-		//bonus points
+		return p;
+	}
+	function pointsBonus(figs,s) {
+		var l = figs.length;
+		var p = 0;
 		if (l < 3) p+=3-l; //void +3, singleton +2, doubleton +1
 		else if (l >= 6) {
 			if (l > 7) l=7;
-			if (s=="s" || s=="h") p+=l-5;
+			if (s=='s' || s=='h') p+=l-5;
 			else if (p >= 5) p+=l-5;
 		}
 		return p;
 	}
-	function points() {
-		var p=0;
-		p+=pointsfor(spades,'s');
-		p+=pointsfor(hearts,'h');
-		p+=pointsfor(diamonds,'d');
-		p+=pointsfor(clubs,'c');
-		return p;
-	}
 
-	this.addSpade = function(f) { spades.push(f); }
-	this.addHeart = function(f) { hearts.push(f); }
-	this.addDiamond = function(f) { diamonds.push(f); }
-	this.addClub = function(f) { clubs.push(f); }
-	this.sort = function() {
-		spades.sort(cmp);
-		hearts.sort(cmp);
-		diamonds.sort(cmp);
-		clubs.sort(cmp);
-		that.cards=spades.length+hearts.length+diamonds.length+clubs.length;
+	function cmpcard(a,b) {
+		return cardFig.indexOf(a)-cardFig.indexOf(b);
+	}
+	function sorthand() {
+		for (var s of cardSuit) {
+			hand[s].sort(cmpcard);
+		}
 	}
 
 	function addlink(f,c) {
@@ -100,11 +106,11 @@ var Player = function() {
 		if (that.cards==0) return s;
 
 		if (that.phase=='auction') {
-			if (that.user || that.table=='test') s+=' p'+points()+'<br>';
+			if (that.user || that.table=='test') s+=' p'+points+'/'+hcp+'<br>';
 			else return s;
 		}
 		else if (that.phase=='game') {
-			if (that.user || (that.partner.contractor && that.r.cards<13) || (that.partner.user && that.contractor) || 
+			if (that.user || (that.partner.contractor && that.cards<13) || (that.partner.user && that.contractor) || 
 					that.table=='test') {}
 			else return s+'<br>Cards: '+that.cards;
 		}
@@ -112,16 +118,16 @@ var Player = function() {
 
 		s += '<table class="player"><tr><td>';
 		s += Bridge.card('','s')+'</td><td>';
-		for (var f of spades) s+=addlink(f,f+'s');
+		for (var f of hand['s']) s+=addlink(f,f+'s');
 		s += '</td></tr><tr><td>';
 		s += Bridge.card('','h')+'</td><td>';
-		for (var f of hearts) s+=addlink(f,f+'h');
+		for (var f of hand['h']) s+=addlink(f,f+'h');
 		s += '</td></tr><tr><td>';
 		s += Bridge.card('','d')+'</td><td>';
-		for (var f of diamonds) s+=addlink(f,f+'d');
+		for (var f of hand['d']) s+=addlink(f,f+'d');
 		s += '</td></tr><tr><td>';
 		s += Bridge.card('','c')+'</td><td>';
-		for (var f of clubs) s+=addlink(f,f+'c');
+		for (var f of hand['c']) s+=addlink(f,f+'c');
 		s += '</td></tr></table>';
 		return s;
 	}
