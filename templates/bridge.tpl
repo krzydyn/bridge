@@ -27,21 +27,20 @@ window.rooturl='<%val("cfg.rooturl")%>';
 var stopRefresh=false;
 
 function calcState(st) {
-	if (st.info) {
-		var n=0;
-		if (!isEmpty(st.info.west.name)) ++n;
-		if (!isEmpty(st.info.north.name)) ++n;
-		if (!isEmpty(st.info.east.name)) ++n;
-		if (!isEmpty(st.info.south.name)) ++n;
-		st.players=n;
-		n=0;
-		if (st.info.west.hand) n+=st.info.west.hand.length;
-		if (st.info.north.hand) n+=st.info.north.hand.length;
-		if (st.info.east.hand) n+=st.info.east.hand.length;
-		if (st.info.south.hand) n+=st.info.south.hand.length;
-		st.cards=n;
+	var n=0;
+	if (st.west) {
+	if (!isEmpty(st.west.name)) ++n;
+	if (!isEmpty(st.north.name)) ++n;
+	if (!isEmpty(st.east.name)) ++n;
+	if (!isEmpty(st.south.name)) ++n;
+	st.players=n;
+	n=0;
+	if (st.west.hand) n+=st.west.hand.length;
+	if (st.north.hand) n+=st.north.hand.length;
+	if (st.east.hand) n+=st.east.hand.length;
+	if (st.south.hand) n+=st.south.hand.length;
+	st.cards=n;
 	}
-	else st.phase='';
 }
 function saveState(st) {
 	calcState(st);
@@ -79,9 +78,7 @@ function onExitReady(rc,tx) {
 	}
 	var st = readState();
 	try {
-		var o = JSON.parse(tx);
-		st.error=o['error'];
-		st.info=null;
+		st = JSON.parse(tx);
 		st.phase='';
 	}catch(e) {
 		st.error=e.toString()+'<br>'+tx;
@@ -99,20 +96,15 @@ function onGetInfoReady(rc,tx,tag) {
 	var st = readState();
 	try {
 		var o=JSON.parse(tx);
-		if (o['error']) {
-			st.error=o['error'];
-			log("st.error="+st.error);
+		if (o) {
+			st=o;
+			calcState(st);
 		}
-		else st.error='';
-		if (o['state']) {
-			st.info=o['state'];
-			st.phase=st.info.phase;
-		}
-		calcState(st);
 	}
 	catch(e) {
-		log(e);
-		st.error=e.toString()+'<br>'+tx;
+		log(e.stack);
+		log(tx);
+		st.error='info:'+e.toString()+'<br>'+tx;
 	}
 	saveState(st);
 	if (st.error) $('error').innerHTML=st.error;
@@ -129,8 +121,8 @@ function makePlayer(st,pd) {
 	p.face=pd.face;
 	p.tricks=pd.tricks;
 	p.user = (pd.name == st.user) ? 1 : 0;
-	p.current = (pd.name == st.info.player) ? 1 : 0;
-	p.contractor = (pd.name == st.info.contractor) ? 1 : 0;
+	p.current = (pd.name == st.player) ? 1 : 0;
+	p.contractor = (pd.name == st.contractor) ? 1 : 0;
 	return p;
 }
 function faceView(st,f) {
@@ -160,7 +152,7 @@ function boardView(st) {
 function setBid(obj) {
 	var bid=obj.getAttribute('bid');
 	var st = readState();
-	var user = st.info.player ? st.info.player : s.user;
+	var user = st.player ? st.player : st.user;
 	var u='u='+user+'&t='+st.table+'&bid='+bid;
 	ajax.async('get','<%val("cfg.rooturl")%>api/setbid?'+u,onGetInfoReady);
 	stopRefresh=false;
@@ -214,7 +206,7 @@ function showTable(st) {
 	}
 	s += '</div>';
 
-	var plr = [ makePlayer(st,st.info.west), makePlayer(st,st.info.north), makePlayer(st,st.info.east), makePlayer(st,st.info.south)];
+	var plr = [ makePlayer(st,st.west), makePlayer(st,st.north), makePlayer(st,st.east), makePlayer(st,st.south)];
 	for (var i=0; i < plr.length; ++i) {
 		plr[i].partner = plr[(i+2)%plr.length];
 		plr[i].r = plr[(i+3)%plr.length];
@@ -223,7 +215,7 @@ function showTable(st) {
 	s += '<table class="table">';
 	s += '<tr><td class="top left">';
 	if (st.phase=='auction') {
-		if (st.user == st.info.player) {
+		if (st.user == st.player) {
 			s += '<div class="ddlist">'
 			s += '<input type="button" value="bid" onclick="ddlist(this)"><br>';
 			s += '<div class="bids">';
@@ -235,18 +227,18 @@ function showTable(st) {
 		}
 	}
 	else if (st.phase=='game') {
-		s += '<b>Contract:</b> '+Bridge.cardx(st.info.contract)+'<br>';
-		s += '<b>For:</b> '+st.info.contractor+'<br>';
-		s += '<b>Playing:</b> '+st.info.player+'<br>';
+		s += '<b>Contract:</b> '+Bridge.cardx(st.contract)+'<br>';
+		s += '<b>For:</b> '+st.contractor+'<br>';
+		s += '<b>Playing:</b> '+st.player+'<br>';
 	}
 	else if (st.phase=='gameovr') {
-		s += '<b>Contract:</b> '+Bridge.cardx(st.info.contract)+'<br>';
-		s += '<b>For:</b> '+st.info.contractor+'<br>';
+		s += '<b>Contract:</b> '+Bridge.cardx(st.contract)+'<br>';
+		s += '<b>For:</b> '+st.contractor+'<br>';
 		var tricks=0;
 		for (var i=0; i < plr.length; ++i) {
 			if (plr[i].contractor) tricks=plr[i].tricks+plr[i].partner.tricks;
 		}
-		tricks=Bridge.isWinner(st.info.contract, tricks);
+		tricks=Bridge.isWinner(st.contract, tricks);
 		if (tricks<0) s += '<div class="looser">';
 		else s += '<div class="winner">';
 		if (tricks == 0) s += ' WIN!';
@@ -256,7 +248,7 @@ function showTable(st) {
 	}
 	s += '</td><td>'+plr[1].view()+'</td><td></td></tr>';
 	s += '<tr><td>'+plr[0].view()+'</td>';
-	s += '<td class="board">'+boardView(st.info)+'</td>';
+	s += '<td class="board">'+boardView(st)+'</td>';
 	s += '<td class>'+plr[2].view()+'</td></tr>';
 	s += '<tr><td></td><td>'+plr[3].view()+'</td><td></td></tr>';
 	s += '</table>';

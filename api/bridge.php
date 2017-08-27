@@ -2,19 +2,20 @@
 include_once("api/helpers.php");
 function api_join($a) {
 	global $seat;
+	$req=Request::getInstance();
 	$db=null;
 	try {
 		$db = DB::connectDefault();
 	}
 	catch(Exception $e) {
-		echo json_encode(array("error"=>get_class($e).": ".$e->getMessage()));
+		$req->addval("error",get_class($e).": ".$e->getMessage());
 		return ;
 	}
 	$u=$a["u"];
 	$t=$a["t"];
 	$r=$db->query("select name,state from tables where name=?",array("1"=>$t));
 	if ($r===false) {
-		echo json_encode(array("error"=>$db->errmsg()));
+		$req->addval("error","DB:".$db->errmsg());
 		return;
 	}
 	$row=$r->fetch();
@@ -25,7 +26,7 @@ function api_join($a) {
 		$r=$db->query("insert into tables (name,expireOn,state) values (?,?,?)",
 						array(1=>$t,2=>(time()+3600),3=>json_encode($state)));
 		if ($r===false) {
-			echo json_encode(array("error"=>$db->errmsg()));
+			$req->addval("error","DB:".$db->errmsg());
 			return;
 		}
 	}
@@ -69,7 +70,7 @@ function api_join($a) {
 
 		$row["state"]=json_encode($state);
 		if (saveRow($db,$row)===false) {
-			echo json_encode(array("error"=>$db->errmsg()));
+			$req->addval("error","DB:".$db->errmsg());
 			return;
 		}
 	}
@@ -86,24 +87,25 @@ function api_removeai($a) {
 }
 function api_exit($a) {
 	global $seat;
+	$req=Request::getInstance();
 	$db=null;
 	try {
 		$db = DB::connectDefault();
 	}
 	catch(Exception $e) {
-		echo json_encode(array("error"=>get_class($e).": ".$e->getMessage()));
+		$req->addval("error",get_class($e).": ".$e->getMessage());
 		return ;
 	}
 	$u=$a["u"];
 	$t=$a["t"];
 	$r=$db->query("select name,state from tables where name=?",array("1"=>$t));
 	if ($r===false) {
-		echo json_encode(array("error"=>$db->errmsg()));
+		$req->addval("error","DB:".$db->errmsg());
 		return;
 	}
 	$row=$r->fetch();
 	if (!$row) {
-		echo json_encode(array("error"=>"no such table"));
+		$req->addval("error","no such table");
 		return;
 	}
 	else {
@@ -128,7 +130,7 @@ function api_exit($a) {
 		
 		$row["state"]=json_encode($state);
 		if (saveRow($db,$row)===false) {
-			echo json_encode(array("error"=>$db->errmsg()));
+			$req->addval("error","DB:".$db->errmsg());
 			return;
 		}
 	}
@@ -138,19 +140,20 @@ function api_exit($a) {
 
 function api_getinfo($a) {
 	global $seat;
+	$req=Request::getInstance();
 	$db=null;
 	try {
 		$db = DB::connectDefault();
 	}
 	catch(Exception $e) {
-		echo json_encode(array("error"=>get_class($e).": ".$e->getMessage()));
+		$req->addval("error",get_class($e).": ".$e->getMessage());
 		return ;
 	}
 	$u=$a["u"];
 	$t=$a["t"];
 	$r=$db->query("select name,state from tables where name=?",array("1"=>$t));
 	if ($r===false) {
-		echo json_encode(array("error"=>$db->errmsg()));
+		$req->addval("error","DB:".$db->errmsg());
 		return;
 	}
 	$row=$r->fetch();
@@ -165,29 +168,32 @@ function api_getinfo($a) {
 		}
 		if (property_exists($state,"wisted")) unset($state->wisted);
 	}
-	echo json_encode(array("state"=>$state));
+	$state->table=$t;
+	$state->user=$u;
+	$req->setval("state",$state);
 }
 
 function api_reset($a) {
 	global $seat;
+	$req=Request::getInstance();
 	$db=null;
 	try {
 		$db = DB::connectDefault();
 	}
 	catch(Exception $e) {
-		echo json_encode(array("error"=>get_class($e).": ".$e->getMessage()));
+		$req->addval("error",get_class($e).": ".$e->getMessage());
 		return ;
 	}
 	$u=$a["u"];
 	$t=$a["t"];
 	$r=$db->query("select name,state from tables where name=?",array("1"=>$t));
 	if ($r===false) {
-		echo json_encode(array("error"=>$db->errmsg()));
+		$req->addval("error","DB:".$db->errmsg());
 		return;
 	}
 	$row=$r->fetch();
 	if (!$row) {
-		echo json_encode(array("error"=>"no such table"));
+		$req->addval("error","no such table");
 		return;
 	}
 	else {
@@ -196,8 +202,7 @@ function api_reset($a) {
 		$state->phase="deal";
 		$row["state"]=json_encode($state);
 		if (saveRow($db,$row)===false) {
-			echo json_encode(array("error"=>$db->errmsg()));
-			return;
+			$req->addval("error","DB:".$db->errmsg());
 		}
 	}
 	$db->close();
@@ -206,30 +211,31 @@ function api_reset($a) {
 
 function api_deal($a) {
 	global $seat;
+	$req=Request::getInstance();
 	$db=null;
 	try {
 		$db = DB::connectDefault();
 	}
 	catch(Exception $e) {
-		echo json_encode(array("error"=>get_class($e).": ".$e->getMessage()));
+		$req->addval("error",get_class($e).": ".$e->getMessage());
 		return ;
 	}
 	$u=$a["u"];
 	$t=$a["t"];
 	$r=$db->query("select name,state from tables where name=?",array("1"=>$t));
 	if ($r===false) {
-		echo json_encode(array("error"=>$db->errmsg()));
+		$req->addval("error","DB:".$db->errmsg());
 		return;
 	}
 	if ($row=$r->fetch()) {
 		$state=json_decode($row["state"]);
 		if ($state->phase != "deal") {
-			echo json_encode(array("error"=>"no deal in phase".$state->phase));
+			$req->addval("error","no deal in phase".$state->phase);
 			return;
 		}
 		if ($state->player != "" && $state->player != $u) {
 			logstr("expecting user ".$state->player);
-			echo json_encode(array("error"=>"wrong player, not your turn"));
+			$req->addval("error","wrong player, not your turn");
 			return;
 		}
 		
@@ -260,12 +266,13 @@ function api_deal($a) {
 }
 function api_setbid($a){
 	global $seat;
+	$req=Request::getInstance();
 	$db=null;
 	try {
 		$db = DB::connectDefault();
 	}
 	catch(Exception $e) {
-		echo json_encode(array("error"=>get_class($e).": ".$e->getMessage()));
+		$req->addval("error",get_class($e).": ".$e->getMessage());
 		return ;
 	}
 	$u=$a["u"];
@@ -273,23 +280,23 @@ function api_setbid($a){
 	$bid=$a["bid"];
 	$r=$db->query("select name,state from tables where name=?",array("1"=>$t));
 	if ($r===false) {
-		echo json_encode(array("error"=>$db->errmsg()));
+		$req->addval("error","DB:".$db->errmsg());
 		return;
 	}
 	if ($row=$r->fetch()) {
 		$state=json_decode($row["state"]);
 		if ($state->phase != "auction") {
-			echo json_encode(array("error"=>"no bid in phase".$state->phase));
+			$req->addval("error","no bid in phase".$state->phase);
 			return;
 		}
 		if ($state->player != $u) {
 			logstr("expecting user ".$state->player);
-			echo json_encode(array("error"=>"not your turn, waiting for ".$state->player));
+			$req->addval("error","not your turn, waiting for ".$state->player);
 			return;
 		}
 
 		if (!checkBidAllowed($state->bids,$bid)) {
-			echo json_encode(array("error"=>"bid not allowed"));
+			$req->addval("error","bid not allowed");
 			return;
 		}
 		
@@ -306,12 +313,13 @@ function api_setbid($a){
 }
 function api_put($a) {
 	global $seat;
+	$req=Request::getInstance();
 	$db=null;
 	try {
 		$db = DB::connectDefault();
 	}
 	catch(Exception $e) {
-		echo json_encode(array("error"=>get_class($e).": ".$e->getMessage()));
+		$req->addval("error",get_class($e).": ".$e->getMessage());
 		return ;
 	}
 	$u=$a["u"];
@@ -320,18 +328,18 @@ function api_put($a) {
 
 	$r=$db->query("select name,state from tables where name=?",array("1"=>$t));
 	if ($r===false) {
-		echo json_encode(array("error"=>$db->errmsg()));
+		$req->addval("error","DB:".$db->errmsg());
 		return;
 	}
 	if ($row=$r->fetch()) {
 		$state=json_decode($row["state"]);
 		if ($state->phase != "game") {
-			echo json_encode(array("error"=>"no put in phase".$state->phase));
+			$req->addval("error","no put in phase".$state->phase);
 			return;
 		}
 		if ($state->player != $u) {
 			logstr("expecting user ".$state->player);
-			echo json_encode(array("error"=>"not your turn, waiting for ".$state->player));
+			$req->addval("error","not your turn, waiting for ".$state->player);
 			return;
 		}
 
@@ -343,8 +351,7 @@ function api_put($a) {
 		foreach ($seat as $k) {
 			if ($state->$k->name==$u) {
 				if (!in_array($c,$state->$k->hand)) {
-					logstr("no such card to play ".$c);
-					echo json_encode(array("error"=>"you don't have this card".$state->player));
+					$req->addval("error","you don't have this card".$state->player);
 					return;
 				}
 				$state->$k->hand = array_values(array_diff($state->$k->hand,array($c)));
@@ -363,12 +370,13 @@ function api_put($a) {
 }
 function api_autoplay($a) {
 	global $seat;
+	$req=Request::getInstance();
 	$db=null;
 	try {
 		$db = DB::connectDefault();
 	}
 	catch(Exception $e) {
-		echo json_encode(array("error"=>get_class($e).": ".$e->getMessage()));
+		$req->addval("error",get_class($e).": ".$e->getMessage());
 		return ;
 	}
 	$u=$a["u"];
@@ -376,7 +384,7 @@ function api_autoplay($a) {
 
 	$r=$db->query("select name,state from tables where name=?",array("1"=>$t));
 	if ($r===false) {
-		echo json_encode(array("error"=>$db->errmsg()));
+		$req->addval("error","DB:".$db->errmsg());
 		return;
 	}
 	if ($row=$r->fetch()) {
@@ -391,12 +399,13 @@ function api_autoplay($a) {
 }
 function api_undo($a) {
 	global $seat;
+	$req=Request::getInstance();
 	$db=null;
 	try {
 		$db = DB::connectDefault();
 	}
 	catch(Exception $e) {
-		echo json_encode(array("error"=>get_class($e).": ".$e->getMessage()));
+		$req->addval("error",get_class($e).": ".$e->getMessage());
 		return ;
 	}
 	$u=$a["u"];
@@ -404,7 +413,7 @@ function api_undo($a) {
 
 	$r=$db->query("select name,state from tables where name=?",array("1"=>$t));
 	if ($r===false) {
-		echo json_encode(array("error"=>$db->errmsg()));
+		$req->addval("error","DB:".$db->errmsg());
 		return;
 	}
 	if ($row=$r->fetch()) {

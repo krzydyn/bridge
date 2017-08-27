@@ -56,10 +56,19 @@ $r->addRoute("","/api/(\\w+).*",function() {
 	$args = func_get_args();
 	$func = strtolower($args[1]);
 	require_once("api/bridge.php");
+
 	$args = $req->getval("req");
 	$func = "api_".$func;
-	logstr("api: ".$func."(".json_encode($args).")");
 	$func($args);
+
+	$c = ob_get_contents();
+	ob_end_clean();
+	if ($c) $req->addval("error",$c);
+	$r = $req->getval("state");
+	$c = $req->getval("error");
+	if ($c) $r->error=$c;
+	logstr("echo:".json_encode($r));
+	echo json_encode($r);
 });
 
 $r->addRoute("GET","/.*",function() {
