@@ -9,6 +9,17 @@ exit;*/
 
 $r = new Router();
 //static content
+$r->addRoute("GET","/favicon.ico",function() {//args[0] constain whole match
+	$req=Request::getInstance();
+	$f="";
+	if (file_exists($f)) {
+		header("Content-Type: ".make_content_type($f));
+		readfile($f);
+	}
+	else {
+		header($req->getval("srv.SERVER_PROTOCOL")." 404 Not Found", true, 404);
+	}
+});
 $r->addRoute("GET","/.*(css|js)",function() {
 	$req=Request::getInstance();
 	$f=".".$req->getval("uri");
@@ -21,8 +32,8 @@ $r->addRoute("GET","/.*(css|js)",function() {
 	}
 });
 $r->addRoute("GET","(/icony/.*)",function() {
-	$args = func_get_args();
-	$f="..".$args[1];
+	$req=Request::getInstance();
+	$f="..".$req->getval("uri");
 	if (file_exists($f)) {
 		header("Content-Type: ".make_content_type($f));
 		readfile($f);
@@ -32,7 +43,6 @@ $r->addRoute("GET","(/icony/.*)",function() {
 	}
 });
 $r->addRoute("GET","(/res/.*)",function() {
-	$args = func_get_args();
 	$req=Request::getInstance();
 	$f=".".$req->getval("uri");
 	if (file_exists($f)) {
@@ -44,9 +54,15 @@ $r->addRoute("GET","(/res/.*)",function() {
 	}
 });
 $r->addRoute("GET","/ajax\\.js",function() {
-	$f="../ajax.js";
-	header("Content-Type: ".make_content_type($f));
-	readfile($f);
+	$req=Request::getInstance();
+	$f="..".$req->getval("uri");
+	if (file_exists($f)) {
+		header("Content-Type: ".make_content_type($f));
+		readfile($f);
+	}
+	else {
+		header($req->getval("srv.SERVER_PROTOCOL")." 404 Not Found", true, 404);
+	}
 });
 
 //valid php scripts
