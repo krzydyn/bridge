@@ -1,7 +1,24 @@
+# Apache config (not lighttpd!!!)
+
 <FilesMatch "^\.ht">
 	Order allow,deny
 	Deny from all
 </FilesMatch>
+
+<FilesMatch ".(css)$">
+Header set Cache-Control "max-age=86400"  #one day
+</FilesMatch>
+<FilesMatch ".(ico|gif|jpg|jpeg|png)$">
+Header set Cache-Control "max-age=2419200"  #four weeks
+</FilesMatch>
+
+<IfModule mod_deflate.c>
+AddOutputFilterByType DEFLATE text/plain
+AddOutputFilterByType DEFLATE text/html
+AddOutputFilterByType DEFLATE text/css
+AddOutputFilterByType DEFLATE text/javascript
+AddOutputFilterByType DEFLATE application/javascript application/x-javascript
+</IfModule>
 
 # this makes server error 500
 #AllowOverride All
@@ -9,7 +26,6 @@
 #Options +FollowSymlinks
 #Options All -Indexes
 
-# Apache config (not lighttpd!!!)
 RewriteEngine On
 RewriteCond %{REQUEST_FILENAME} !=index.php
 RewriteRule .* index.php [QSA,L]

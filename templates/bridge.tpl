@@ -1,8 +1,8 @@
 <!DOCTYPE html>
 <html xmlns="http://www.w3.org/1999/xhtml" xml:lang="pl" lang="pl">
 <head>
-  <title><%val("cfg.sitetitle")%></title>
   <meta http-equiv="Content-type" content="text/html;charset=utf-8" />
+  <title><%val("cfg.sitetitle")%></title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <script src="<%val("cfg.rooturl")%>ajax.js"></script>
   <script src="<%val("cfg.rooturl")%>js/misc.js"></script>
