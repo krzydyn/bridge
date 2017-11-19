@@ -6,10 +6,12 @@
 </FilesMatch>
 
 <FilesMatch ".(css)$">
-Header set Cache-Control "max-age=86400"  #one day
+#one day
+Header set Cache-Control "max-age=86400"
 </FilesMatch>
 <FilesMatch ".(ico|gif|jpg|jpeg|png)$">
-Header set Cache-Control "max-age=2419200"  #four weeks
+#four weeks
+Header set Cache-Control "max-age=2419200"
 </FilesMatch>
 
 <IfModule mod_deflate.c>

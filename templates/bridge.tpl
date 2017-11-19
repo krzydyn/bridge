@@ -83,8 +83,6 @@ function onExitReady(rc,tx) {
 	}catch(e) {
 		st.error=e.toString()+'<br>'+tx;
 	}
-	if (st.error) $('error').innerHTML=st.error;
-	else $('error').innerHTML='';
 	saveState(st);
 	showJoin(st);
 }
@@ -107,11 +105,8 @@ function onGetInfoReady(rc,tx,tag) {
 		st.error='info:'+e.toString()+'<br>'+tx;
 	}
 	saveState(st);
-	if (st.error) $('error').innerHTML=st.error;
-	else $('error').innerHTML='';
 	if (!st.phase) showJoin(st);
 	else showTable(st);
-	//if (tag=='gi' && !st.error) setTimeout(showState,5000);
 }
 function makePlayer(st,pd) {
 	var p = new Player(pd.hand);
@@ -253,6 +248,9 @@ function showTable(st) {
 	s += '<tr><td></td><td>'+plr[3].view()+'</td><td></td></tr>';
 	s += '</table>';
 	$('content').innerHTML=s;
+
+	if (st.error) $('error').innerHTML=st.error;
+	else $('error').innerHTML='';
 }
 function putCard(u,c) {
 	var st = readState();
@@ -299,8 +297,8 @@ function dealCards() {
 }
 
 function showJoin(st) {
-	var s='<table><tr><th colspan="2">Join table to play</td></tr>';
-	s += '<tr><td>Your name: </td>';
+	$('status').innerHTML = 'Please join a table to play';
+	var s='<table><tr><td>Your name: </td>';
 	s += '<td><input id="user" type="text" value="'+st.user+'" size="10" placeholder="your name"></td></tr>';
 	s += '<tr><td>Table name: </td>';
 	s += '<td><input id="table" type="text" value="'+st.table+'" size="10" placeholder="table name"> </td>';
