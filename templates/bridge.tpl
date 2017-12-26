@@ -28,11 +28,23 @@ var stopRefresh=false;
 
 function calcState(st) {
 	var n=0;
-	if (st.west) {
-	if (!isEmpty(st.west.name)) ++n;
-	if (!isEmpty(st.north.name)) ++n;
-	if (!isEmpty(st.east.name)) ++n;
-	if (!isEmpty(st.south.name)) ++n;
+	st.userpos=0;
+	if (!isEmpty(st.west.name)) {
+		++n;
+		if (st.west.name == st.user) st.userpos=1;
+	}
+	if (!isEmpty(st.north.name)) {
+		++n;
+		if (st.west.name == st.user) st.userpos=2;
+	}
+	if (!isEmpty(st.east.name)) {
+		++n;
+		if (st.west.name == st.user) st.userpos=3;
+	}
+	if (!isEmpty(st.south.name)) {
+		++n;
+		if (st.west.name == st.user) st.userpos=4;
+	}
 	st.players=n;
 	n=0;
 	if (st.west.hand) n+=st.west.hand.length;
@@ -40,7 +52,6 @@ function calcState(st) {
 	if (st.east.hand) n+=st.east.hand.length;
 	if (st.south.hand) n+=st.south.hand.length;
 	st.cards=n;
-	}
 }
 function saveState(st) {
 	calcState(st);
@@ -181,6 +192,7 @@ function showTable(st) {
 
 	var s='<div>';
 
+	if (st.userpos > 0) {
 	if (st.phase=='deal') {
         s += ' <input type="button" value="deal" onclick="dealCards()">';
     }
@@ -189,8 +201,10 @@ function showTable(st) {
 		if (st.players > 0) s += '<input type="button" value="AI-" onclick="removeAI()">'
 	}
 
-	if (st.phase!='deal')
+	if (st.phase!='wait' && st.phase!='deal')
 		s += '<input type="button" value="reset" onclick="resetTable()">'
+	}
+	else s+= 'All places are occupied, you can observe<br>';
 	s += '<input type="button" value="exit" onclick="exitTable()">'
 
 	if (st.phase=='wait') {

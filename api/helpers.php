@@ -24,6 +24,7 @@ class State {
 		$this->east=new Player();
 		$this->south=new Player();
 	}
+	var $userpos;
 	var $phase="";
 	var $dealer="";
 	var $player="";    //current player

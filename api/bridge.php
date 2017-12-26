@@ -54,7 +54,7 @@ function api_join($a) {
 		$n=0;
 		$c=0;
 		foreach ($seat as $k) {
-			if ($state->$k->name) ++$n;
+			if (!empty($state->$k->name)) ++$n;
 			if (is_array($state->$k->hand))
 				$c += sizeof($state->$k->hand);
 		}
@@ -78,10 +78,12 @@ function api_join($a) {
 	api_getinfo($a);
 }
 function api_joinai($a) {
+	$a["realu"]=$a["u"];
 	$a["u"]="ai";
 	api_join($a);
 }
 function api_removeai($a) {
+	$a["realu"]=$a["u"];
 	$a["u"]="ai";
 	api_exit($a);
 }
@@ -140,6 +142,7 @@ function api_exit($a) {
 
 function api_getinfo($a) {
 	global $seat;
+	if (array_key_exists("realu", $a)) $a["u"] = $a["realu"];
 	$req=Request::getInstance();
 	$db=null;
 	try {
@@ -199,7 +202,12 @@ function api_reset($a) {
 	else {
 		$state = json_decode($row["state"]);
 		resetState($state);
-		$state->phase="deal";
+		$n=0;
+		foreach ($seat as $k) {
+			if (!empty($state->$k->name)) ++$n;
+		}
+		if ($n < 4) $state->phase="wait";
+		else $state->phase="deal";
 		$row["state"]=json_encode($state);
 		if (saveRow($db,$row)===false) {
 			$req->addval("error","DB:".$db->errmsg());
@@ -301,6 +309,10 @@ function api_setbid($a){
 		}
 		
 		$k = seatPlayer($state,$u);
+		if (!isset($state->$k)) {
+			$req->addval("error","no player at ".$k);
+			return;
+		}
 		$state->$k->face = $bid;
 		$state->bids[] = $bid;
 		checkAuctionEnd($state);
