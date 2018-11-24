@@ -60,12 +60,14 @@ function saveState(st) {
 	saveLocal('bridge.state',st);
 	st.error=e;
 }
+function emptyState() {
+	return {user:'',table:'',phase:'',north:'',south:'',west:'',east:''};
+}
 function readState() {
 	var st = readLocal('bridge.state');
-	if (!st) st = {user:'', table:'',phase:''};
-	if (!st.user) st.user='';
-	if (!st.table) st.table='';
-	if (!st.phase) st.phase='';
+	if (!st) st = emptyState();
+	if (!st.north || !st.south || !st.west || !st.east)
+		st = emptyState();
 	st.error='';
 	calcState(st);
 	return st;
@@ -287,27 +289,27 @@ function joinTable() {
 function exitTable() {
 	var st = readState();
 	var u='u='+st.user+'&t='+st.table;
-    ajax.async('get','<%val("cfg.rooturl")%>api/exit?'+u,onExitReady);
+	ajax.async('get','<%val("cfg.rooturl")%>api/exit?'+u,onExitReady);
 }
 function resetTable() {
 	var st = readState();
 	var u='u='+st.user+'&t='+st.table;
-    ajax.async('get','<%val("cfg.rooturl")%>api/reset?'+u,onGetInfoReady);
+	ajax.async('get','<%val("cfg.rooturl")%>api/reset?'+u,onGetInfoReady);
 }
 function joinAI() {
 	var st = readState();
 	var u='u='+st.user+'&t='+st.table;
-    ajax.async('get','<%val("cfg.rooturl")%>api/joinai?'+u,onGetInfoReady);
+	ajax.async('get','<%val("cfg.rooturl")%>api/joinai?'+u,onGetInfoReady);
 }
 function removeAI() {
 	var st = readState();
 	var u='u='+st.user+'&t='+st.table;
-    ajax.async('get','<%val("cfg.rooturl")%>api/removeai?'+u,onGetInfoReady);
+	ajax.async('get','<%val("cfg.rooturl")%>api/removeai?'+u,onGetInfoReady);
 }
 function dealCards() {
 	var st = readState();
 	var u='u='+st.user+'&t='+st.table;
-    ajax.async('get','<%val("cfg.rooturl")%>api/deal?'+u,onGetInfoReady);
+	ajax.async('get','<%val("cfg.rooturl")%>api/deal?'+u,onGetInfoReady);
 }
 
 function showJoin(st) {
@@ -324,7 +326,7 @@ function showJoin(st) {
 function autoplay() {
 	var st = readState();
 	var u='u='+st.user+'&t='+st.table;
-    ajax.async('get','<%val("cfg.rooturl")%>api/autoplay?'+u,onGetInfoReady);
+	ajax.async('get','<%val("cfg.rooturl")%>api/autoplay?'+u,onGetInfoReady);
 }
 </script>
 <div class="center"><div class="pack">
